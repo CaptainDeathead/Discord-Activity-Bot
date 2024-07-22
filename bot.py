@@ -7,6 +7,7 @@ import asyncio
 class CommandsManager(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
+        synced = self.bot.tree.sync()
 
     @app_commands.AppCommand()
     async def ping(interaction: discord.Interaction):
