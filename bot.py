@@ -5,6 +5,10 @@ from database import DatabaseManager
 import asyncio
 
 class CommandsManager(commands.Cog):
+    """
+    Controls all incoming '/' commands and returns the correct response
+    """
+    
     def __init__(self, bot) -> None:
         self.bot = bot
         synced = self.bot.tree.sync()
