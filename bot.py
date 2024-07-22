@@ -1,5 +1,6 @@
 from discord import Client, Intents, app_commands
 import matplotlib as plot
+import asyncio
 
 
 class ActivityBot:
