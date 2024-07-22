@@ -1,6 +1,31 @@
 
 
 from discord import Client, Intents
+from database import DatabaseManager
+
+class PresenceManager:
+    """
+    Tracks the users prensence
+    """
+
+    def __init__(self) -> None:
+        ...
+
+class ActivityManager:
+    """
+    Tracks the users activity and status
+    """
+
+    def __init__(self) -> None:
+        ...
+
+class CommandsManager:
+    """
+    Controls all incoming '/' commands and returns the correct response
+    """
+
+    def __init__(self) -> None:
+        ...
 
 class ActivityBot:
     """
@@ -15,4 +40,3 @@ class ActivityBot:
             Read Message History
         """
         self.intents = Intents(68608)
-        
