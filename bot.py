@@ -3,7 +3,6 @@ from discord import Client, Intents, app_commands
 from discord.ext import commands
 from database import DatabaseManager
 import asyncio
-from database import DatabaseManager
 
 class CommandsManager(commands.Cog):
     def __init__(self, bot) -> None:
@@ -12,6 +11,7 @@ class CommandsManager(commands.Cog):
     @app_commands.AppCommand()
     async def ping(interaction: discord.Interaction):
         return await interaction.response.send_message("e")
+    
 class PresenceManager:
     """
     Tracks the users prensence
@@ -23,7 +23,7 @@ class PresenceManager:
 class ActivityManager:
     """
     Tracks the users activity and status
-    """import matplotlib as plot
+    """
 
 
     def __init__(self) -> None:
@@ -41,6 +41,7 @@ class ActivityBot:
             Send Messages
             Read Message History
         """
-        #self.bot = #
-        self.intents = Intents(68608)
         
+        self.intents = Intents(68608)
+        self.bot = commands.Bot(Intents=self.intents)
+        self.bot.add_cog(CommandsManager(self.bot))
