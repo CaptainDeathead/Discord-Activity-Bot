@@ -1,6 +1,6 @@
+from discord import Client, Intents, app_commands
+import matplotlib as plot
 
-
-from discord import Client, Intents
 
 class ActivityBot:
     """
