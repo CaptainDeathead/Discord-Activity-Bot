@@ -1,7 +1,6 @@
-
-
-from discord import Client, Intents
+from discord import Client, Intents, app_commands
 from database import DatabaseManager
+import asyncio
 
 class PresenceManager:
     """
