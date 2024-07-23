@@ -26,21 +26,32 @@ class Server:
     Guild parent. Manages values like sweep time.
     """
 
-    SWEEP_INTERVAL: int = 0.1 # Should be 5 (mins)
+    SWEEP_INTERVAL: int = 5 # Should be 5 (mins)
 
-    def __init__(self, guild: Guild, offset: int) -> None:
+    def __init__(self, database_manager: DatabaseManager, guild: Guild, offset: int) -> None:
+        self.database_manager: DatabaseManager = database_manager
         self.guild: Guild = guild
         self.next_sweep: int = self.calculate_sweep() + offset * 10
 
     def calculate_sweep(self) -> int:
-        return time() + self.SWEEP_INTERVAL * 60
+        # return time() + self.SWEEP_INTERVAL * 60
+        return time() + 0.1 * 60 # <- WARNING: THIS IS DEBUG ONLY! USE THIS FOR REAL: "return time() + self.SWEEP_INTERVAL * 60"
     
     def increment_sweep(self) -> None:
         self.next_sweep += self.calculate_sweep()
 
     def sweep(self) -> Dict[int, Dict]:
         for member in self.guild.members:
-            print(f"{member.global_name} - {member.status.name}")
+            if member.bot: return None
+
+            self.database_manager.add_user(member.id)
+
+            user_data: Dict = self.database_manager.get_user_simple_time_dict(member.id)
+            user_simple_time: Dict[str, int] = user_data["simple_time"]
+            
+            user_simple_time[member.status.name] += self.SWEEP_INTERVAL
+
+            self.database_manager.update_user_simple_time(member.id, user_simple_time)
 
 class CommandsManager(commands.Cog):
     """
@@ -151,7 +162,7 @@ class ActivityManager:
         offset: int = 0
         
         for guild in self.guilds:
-            servers.append(Server(guild, offset))
+            servers.append(Server(self.bot.database_manager, guild, offset))
 
             offset += 1
 
@@ -202,6 +213,7 @@ class ActivityBot(commands.Bot):
         
         super().__init__(intents=intents, command_prefix="")
 
+        self.database_manager: DatabaseManager = DatabaseManager()
 
         self.activity_manager: ActivityManager = ActivityManager(self)
 

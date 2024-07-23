@@ -11,7 +11,8 @@ DEFAULT_USER_STATISTICS: Dict = {
     "simple_time": {
         "online": 0,
         "idle": 0,
-        "dnd": 0
+        "dnd": 0,
+        "offline": 0
     },
     "rich_presence_time": {}
 }
@@ -26,12 +27,14 @@ class DatabaseManager:
                 - time spent online
                 - time spent idle
                 - time spent dnd
+                - time spent offline
             
             - rich presence time
                 - rich presence app
                     - time spent online
                     - time spent idle
                     - time spent dnd
+                    - time spent offline
 
     There should also be an option for just the past week, or at least make it possible to know when a piece of data is made.
     """
@@ -43,6 +46,13 @@ class DatabaseManager:
 
     def get_user(self, user_id: int) -> Cursor | None:
         for user in self.users.find({str(user_id): {"$exists": True}}): return user
+
+    def get_user_simple_time_dict(self, user_id: int) -> Dict | None:
+        user: Cursor | None = self.get_user(user_id)
+
+        if user is None: return None
+
+        return user[str(user_id)]
 
     def add_user(self, user_id: int) -> None:
         if self.get_user(user_id): return
@@ -62,7 +72,8 @@ class DatabaseManager:
         new_user_dict["$set"][str(user_id)]["simple_time"] = {
             "online": time["online"],
             "idle": time["idle"],
-            "dnd": time["dnd"]
+            "dnd": time["dnd"],
+            "offline": time["offline"]
         }
 
         self.users.update_one(user_dict, new_user_dict)
@@ -78,7 +89,8 @@ class DatabaseManager:
         new_user_dict["$set"][str(user_id)]["rich_presence_time"][app_name] = {
             "online": time["online"],
             "idle": time["idle"],
-            "dnd": time["dnd"]
+            "dnd": time["dnd"],
+            "offline": time["offline"]
         }
 
         self.users.update_one(user_dict, new_user_dict)
@@ -105,8 +117,8 @@ class DatabaseManager:
 if __name__ == "__main__":
     dbManager = DatabaseManager()
     #dbManager.add_user(0)
-    dbManager.update_user_simple_time(0, {"online": 10, "idle": 20, "dnd": 30})
-    dbManager.update_user_rich_presence_time(0, "test", {"online": 30, "idle": 20, "dnd": 30})
-    for user in dbManager.users.find(): print(user)
+    #dbManager.update_user_simple_time(0, {"online": 10, "idle": 20, "dnd": 30})
+    #dbManager.update_user_rich_presence_time(0, "test", {"online": 30, "idle": 20, "dnd": 30})
+    #for user in dbManager.users.find(): print(user)
     
     #dbManager.test()
