@@ -76,11 +76,7 @@ class CommandsManager(commands.Cog):
         graph = GraphManager.UserOnlineGraph(username=username, userid=userid)
         interaction.response.send_message(file=File(graph))
 
-        remove(graph)
-
-    @commands.command()
-    async def sync(self):
-        return await self.bot.tree.sync()
+        remove(graph)        
 
     @commands.Cog.listener()
     async def on_ready(self):
