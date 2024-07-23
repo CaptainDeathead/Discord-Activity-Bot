@@ -119,6 +119,6 @@ if __name__ == "__main__":
     #dbManager.add_user(0)
     #dbManager.update_user_simple_time(0, {"online": 10, "idle": 20, "dnd": 30})
     #dbManager.update_user_rich_presence_time(0, "test", {"online": 30, "idle": 20, "dnd": 30})
-    #for user in dbManager.users.find(): print(user)
+    for user in dbManager.users.find(): print(user)
     
     #dbManager.test()

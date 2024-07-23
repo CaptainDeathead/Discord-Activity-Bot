@@ -42,7 +42,7 @@ class Server:
 
     def sweep(self) -> Dict[int, Dict]:
         for member in self.guild.members:
-            if member.bot: return None
+            if member.bot: continue
 
             self.database_manager.add_user(member.id)
 
