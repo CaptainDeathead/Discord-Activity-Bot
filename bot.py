@@ -37,7 +37,7 @@ class CommandsManager(commands.Cog):
     
 class PresenceManager:
     """
-    Tracks the users prensence
+    Tracks the users prescence
     """
 
     def __init__(self) -> None:
