@@ -49,4 +49,4 @@ class ActivityBot:
         
         self.intents = Intents(68608)
         self.bot = commands.Bot(Intents=self.intents)
-        self.bot.add_cog(CommandsManager(self.bot))
+        self.bot.add_cog(CommandsManager(self.bot))#
