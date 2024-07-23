@@ -1,13 +1,16 @@
 import logging
 import asyncio
 
-from discord import app_commands, Intents, Interaction, Guild, Status
+from os import remove
+
+from discord import app_commands, Intents, Interaction, Guild, Member, Status, File
 from discord.ext import commands
 
 from threading import Thread
 from time import time, sleep
 
 from database import DatabaseManager
+from analytics import GraphManager
 from yaml import safe_load
 
 from typing import List, Dict
@@ -51,6 +54,19 @@ class CommandsManager(commands.Cog):
     async def ping(self, interaction: Interaction):
         return await interaction.response.send_message("`🟢 Activity bot is online...`")
 
+    @app_commands.command(name="mystatustime", description="Graph of time spent on each status")
+    async def statgraph(self, interaction: Interaction, user: Member|None = None):
+        if user == None:
+            user = interaction.user
+        
+        username = user.nick
+        userid = user.id
+
+        graph = GraphManager.UserOnlineGraph(username=username, userid=userid)
+        interaction.response.send_message(file=File(graph))
+
+        remove(graph)
+
     @commands.Cog.listener()
     async def on_ready(self):
         await self.bot.tree.sync()
@@ -63,7 +79,7 @@ class CommandsManager(commands.Cog):
     
 class PresenceManager:
     """
-    Tracks the users prensence
+    Tracks the users prescence
     """
 
     def __init__(self) -> None:

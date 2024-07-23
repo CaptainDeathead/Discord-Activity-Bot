@@ -32,6 +32,8 @@ class DatabaseManager:
                     - time spent online
                     - time spent idle
                     - time spent dnd
+
+    There should also be an option for just the past week, or at least make it possible to know when a piece of data is made.
     """
 
     def __init__(self) -> None:
