@@ -1,10 +1,12 @@
 import logging
 import asyncio
+from os import remove
 
-from discord import app_commands, Intents, Interaction, Guild
+from discord import app_commands, Intents, Interaction, Guild, Member, File
 from discord.ext import commands
 
 from database import DatabaseManager
+from analytics import GraphManager
 from yaml import safe_load
 
 from typing import List, Dict
@@ -26,6 +28,20 @@ class CommandsManager(commands.Cog):
     @app_commands.command(name="status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
         return await interaction.response.send_message("🟢 Activity bot is online...")
+    
+    @app_commands.command(name="mystatustime", description="Graph of time spent on each status")
+    async def statgraph(self, interaction: Interaction, user: Member|None = None):
+        if user == None:
+            user = interaction.user
+        
+        username = user.nick
+        userid = user.id
+
+        graph = GraphManager.UserOnlineGraph(username=username, userid=userid)
+        interaction.response.send_message(file=File(graph))
+
+        remove(graph)
+        
 
     @commands.Cog.listener()
     async def on_ready(self):
