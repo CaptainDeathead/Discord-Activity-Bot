@@ -89,4 +89,4 @@ class ActivityBot:
             return safe_load(cfg.read())
 
     def main(self) -> None:
-        self.bot.run(self.TOKEN)
+        self.bot.run(self.TOKEN)#
