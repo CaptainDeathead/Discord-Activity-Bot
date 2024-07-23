@@ -15,15 +15,15 @@ class CommandsManager(commands.Cog):
     
     def __init__(self, bot) -> None:
         self.bot = bot
-        #synced = self.bot.tree.sync()
 
-    @app_commands.command(name="ping", description="Test bot is responding.")
+    @app_commands.command(name="status", description="Test bot is responding.")
     async def ping(self, interaction: discord.Interaction):
-        return await interaction.response.send_message("e")
-    
+        return await interaction.response.send_message("🟢 Activity bot is online...")
 
     @commands.Cog.listener()
     async def on_ready(self):
+        await self.bot.tree.sync()
+
         print(f"Bot successfully started as {self.bot.user}.")
     
 class PresenceManager:
@@ -43,7 +43,7 @@ class ActivityManager:
     def __init__(self) -> None:
         ...
 
-class ActivityBot:
+class ActivityBot(commands.Bot):
     """
     Discord activity bot
     """
@@ -59,15 +59,14 @@ class ActivityBot:
         self.CONFIG: Dict = self._load_cfg(config_path)
         self.TOKEN: str = self.__get_token()
         
-        self.intents = Intents(68608)
-        self.bot = commands.Bot(intents=self.intents, command_prefix="") 
+        super().__init__(intents=Intents(68608), command_prefix="") 
 
         asyncio.run(self.__init_cogs())
 
     async def __init_cogs(self) -> None:
-        await self.bot.add_cog(CommandsManager(self.bot))
+        await self.add_cog(CommandsManager(self))
         
-        #self.bot.tree.sync()
+        #await self.tree.sync()
 
     def __get_token(self) -> str:
         try:
@@ -89,4 +88,4 @@ class ActivityBot:
             return safe_load(cfg.read())
 
     def main(self) -> None:
-        self.bot.run(self.TOKEN)
+        self.run(self.TOKEN)
