@@ -1,30 +1,39 @@
-import discord
-from discord import Client, Intents, app_commands
-from discord.ext import commands
-from database import DatabaseManager
+import logging
 import asyncio
 
+from discord import app_commands, Intents, Interaction, Guild
+from discord.ext import commands
+
+from database import DatabaseManager
 from yaml import safe_load
 
-from typing import Dict
+from typing import List, Dict
+
+
+logging.basicConfig()
+logging.root.setLevel(logging.NOTSET)
+logging.basicConfig(level=logging.NOTSET)
+
 
 class CommandsManager(commands.Cog):
     """
     Controls all incoming '/' commands and returns the correct response
     """
     
-    def __init__(self, bot) -> None:
-        self.bot = bot
-        #synced = self.bot.tree.sync()
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot: commands.Bot = bot
 
-    @app_commands.command(name="ping", description="Test bot is responding.")
-    async def ping(self, interaction: discord.Interaction):
-        return await interaction.response.send_message("e")
-    
+    @app_commands.command(name="status", description="Test bot is responding.")
+    async def ping(self, interaction: Interaction):
+        return await interaction.response.send_message("🟢 Activity bot is online...")
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"Bot successfully started as {self.bot.user}.")
+        await self.bot.tree.sync()
+
+        logging.info(f"Bot successfully started as {self.bot.user}.")
+
+        await self.bot.activity_manager.fetch_guilds()
     
 class PresenceManager:
     """
@@ -39,11 +48,24 @@ class ActivityManager:
     Tracks the users activity and status
     """
 
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot: commands.Bot = bot
 
-    def __init__(self) -> None:
-        ...
+        self.guilds: List[Guild] = asyncio.run(self.fetch_guilds())
+        
+    def fetch_guilds(self) -> List[Guild]:
+        guilds: List[Guild] = []
 
-class ActivityBot:
+        for guild in self.bot.guilds:
+            logging.info(f"Found guild: '{guild.id}'")
+
+            guilds.append(guild)
+
+        return guilds
+    
+    def get_members(self, guild_id): ...
+
+class ActivityBot(commands.Bot):
     """
     Discord activity bot
     """
@@ -58,16 +80,19 @@ class ActivityBot:
 
         self.CONFIG: Dict = self._load_cfg(config_path)
         self.TOKEN: str = self.__get_token()
+
+        intents = Intents(68608)
+        intents.members = True
         
-        self.intents = Intents(68608)
-        self.bot = commands.Bot(intents=self.intents, command_prefix="") 
+        super().__init__(intents=intents, command_prefix="")
+
+        
+        self.activity_manager: ActivityManager = ActivityManager(self)
 
         asyncio.run(self.__init_cogs())
 
     async def __init_cogs(self) -> None:
-        await self.bot.add_cog(CommandsManager(self.bot))
-        
-        #self.bot.tree.sync()
+        await self.add_cog(CommandsManager(self))
 
     def __get_token(self) -> str:
         try:
@@ -89,4 +114,4 @@ class ActivityBot:
             return safe_load(cfg.read())
 
     def main(self) -> None:
-        self.bot.run(self.TOKEN)#
+        self.run(self.TOKEN)
