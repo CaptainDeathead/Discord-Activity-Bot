@@ -67,6 +67,10 @@ class CommandsManager(commands.Cog):
 
         remove(graph)
 
+    @commands.command()
+    async def sync(self):
+        return await self.bot.tree.sync()
+
     @commands.Cog.listener()
     async def on_ready(self):
         await self.bot.tree.sync()
@@ -200,7 +204,7 @@ class ActivityBot(commands.Bot):
         intents.members = True
         intents.presences = True
         
-        super().__init__(intents=intents, command_prefix="")
+        super().__init__(intents=intents, command_prefix="^")
 
 
         self.activity_manager: ActivityManager = ActivityManager(self)
