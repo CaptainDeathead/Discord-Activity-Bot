@@ -1,8 +1,11 @@
 import logging
 import asyncio
 
-from discord import app_commands, Intents, Interaction, Guild
+from discord import app_commands, Intents, Interaction, Guild, Status
 from discord.ext import commands
+
+from threading import Thread
+from time import time, sleep
 
 from database import DatabaseManager
 from yaml import safe_load
@@ -15,6 +18,27 @@ logging.root.setLevel(logging.NOTSET)
 logging.basicConfig(level=logging.NOTSET)
 
 
+class Server:
+    """
+    Guild parent. Manages values like sweep time.
+    """
+
+    SWEEP_INTERVAL: int = 0.1 # Should be 5 (mins)
+
+    def __init__(self, guild: Guild, offset: int) -> None:
+        self.guild: Guild = guild
+        self.next_sweep: int = self.calculate_sweep() + offset * 10
+
+    def calculate_sweep(self) -> int:
+        return time() + self.SWEEP_INTERVAL * 60
+    
+    def increment_sweep(self) -> None:
+        self.next_sweep += self.calculate_sweep()
+
+    def sweep(self) -> Dict[int, Dict]:
+        for member in self.guild.members:
+            print(f"{member.global_name} - {member.status.name}")
+
 class CommandsManager(commands.Cog):
     """
     Controls all incoming '/' commands and returns the correct response
@@ -25,15 +49,17 @@ class CommandsManager(commands.Cog):
 
     @app_commands.command(name="status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
-        return await interaction.response.send_message("🟢 Activity bot is online...")
+        return await interaction.response.send_message("`🟢 Activity bot is online...`")
 
     @commands.Cog.listener()
     async def on_ready(self):
         await self.bot.tree.sync()
 
+        self.bot.running = True
+
         logging.info(f"Bot successfully started as {self.bot.user}.")
 
-        await self.bot.activity_manager.fetch_guilds()
+        self.bot.run_activity_manager()
     
 class PresenceManager:
     """
@@ -43,6 +69,51 @@ class PresenceManager:
     def __init__(self) -> None:
         ...
 
+class SweepManager:
+    """
+    Waits, and triggers sweeps on each server when the time comes
+    """
+
+    def __init__(self, update_servers: callable) -> None:
+        self.update_servers: callable = update_servers
+
+        self.servers: List[Server] = update_servers()
+
+        self.thread: Thread = Thread(target=self.main)
+        self.alive: bool = True
+
+        self.stopped: bool = False
+
+    def kill(self) -> None:
+        self.alive = False
+
+        logging.warning(f"[SWEEP MARKED AS DEAD] Please wait until all servers have been processed...  EST. TIME LEFT: {self.servers[-1].next_sweep - time()}s")
+
+    def main(self) -> None:
+        while self.alive:
+            self.servers = self.update_servers()
+
+            if len(self.servers) == 0:
+                logging.warning("[SWEEP THREAD] Servers list empty! Waiting 10 seconds and trying again...")
+                sleep(10)
+                continue
+
+            self.servers.sort(key=lambda x: x.next_sweep)
+
+            for server in self.servers:
+                next_sweep: int = max(0, server.next_sweep - time())
+                
+                logging.info(f"[SWEEP THREAD] Sleeping for {next_sweep}s...  (SWEEPING SERVERS {self.servers.index(server)+1}/{len(self.servers)})")
+                sleep(next_sweep)
+
+                server.sweep()
+                server.increment_sweep()
+
+        self.stopped = True
+
+    def run(self) -> None:
+        self.thread.start()
+
 class ActivityManager:
     """
     Tracks the users activity and status
@@ -51,19 +122,47 @@ class ActivityManager:
     def __init__(self, bot: commands.Bot) -> None:
         self.bot: commands.Bot = bot
 
-        self.guilds: List[Guild] = asyncio.run(self.fetch_guilds())
+        self.guilds: List[Guild] = []
+        self.servers: List[Server] = []
+
+        self.update_servers()
+
+        self.sweep_manager: SweepManager = SweepManager(self.update_servers)
+
+    def _load_guilds(self) -> List[Server]:
+        servers: List[Server] = []
+        
+        offset: int = 0
+        
+        for guild in self.guilds:
+            servers.append(Server(guild, offset))
+
+            offset += 1
+
+        return servers
         
     def fetch_guilds(self) -> List[Guild]:
+        logging.info("Updating guilds...")
+        
         guilds: List[Guild] = []
 
         for guild in self.bot.guilds:
-            logging.info(f"Found guild: '{guild.id}'")
+            logging.info(f" - Found guild: '{guild.id}'")
 
             guilds.append(guild)
 
         return guilds
     
-    def get_members(self, guild_id): ...
+    def update_servers(self) -> List[Server]:
+        if len(self.bot.guilds) != len(self.servers):
+            self.guilds = self.fetch_guilds()
+
+        self.servers = self._load_guilds()
+
+        return self.servers
+    
+    def main(self) -> None:
+        self.sweep_manager.run()
 
 class ActivityBot(commands.Bot):
     """
@@ -81,13 +180,16 @@ class ActivityBot(commands.Bot):
         self.CONFIG: Dict = self._load_cfg(config_path)
         self.TOKEN: str = self.__get_token()
 
-        intents = Intents(68608)
+        intents = Intents.default()
         intents.members = True
+        intents.presences = True
         
         super().__init__(intents=intents, command_prefix="")
 
-        
+
         self.activity_manager: ActivityManager = ActivityManager(self)
+
+        self.running: bool = False
 
         asyncio.run(self.__init_cogs())
 
@@ -112,6 +214,9 @@ class ActivityBot(commands.Bot):
     def _load_cfg(self, path: str) -> Dict:
         with open(path, "r") as cfg:
             return safe_load(cfg.read())
+
+    def run_activity_manager(self) -> None:
+        self.activity_manager.main()
 
     def main(self) -> None:
         self.run(self.TOKEN)
