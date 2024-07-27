@@ -24,6 +24,66 @@ logging.basicConfig(level=logging.INFO)
 DEBUG: bool = False
 
 
+class ActivityBot(commands.Bot):
+    """
+    Discord activity bot
+    """
+
+    def __init__(self, config_path: str) -> None:
+        """
+        intents:
+            Read Messages / View Channels
+            Send Messages
+            Read Message History
+        """
+        global DEBUG
+
+        self.CONFIG: Dict = self._load_cfg(config_path)
+        self.TOKEN: str = self.__get_token()
+
+        DEBUG = self.CONFIG['debug']
+
+        intents = Intents.default()
+        intents.members = True
+        intents.presences = True
+        
+        super().__init__(intents=intents, command_prefix="^")
+
+        self.database_manager: DatabaseManager = DatabaseManager()
+        self.activity_manager: ActivityManager = ActivityManager(self)
+
+        self.running: bool = False
+
+        asyncio.run(self.__init_cogs())
+
+    async def __init_cogs(self) -> None:
+        await self.add_cog(CommandsManager(self))
+
+    def __get_token(self) -> str:
+        try:
+            with open(self.CONFIG["token_path"], "r") as token_raw:
+                return token_raw.read()
+
+        except FileNotFoundError:
+            print("Error while loading token!\nPlease ensure the path to the token in the config file is correct.")
+            exit()
+
+        except UnicodeError:
+            print("Error while loading token!\nPlease ensure the token file is 'utf-8' encoding and has no special characters.")
+
+        except Exception as e:
+            print(f"Error while loading token!\nError: {str(e)}!")
+
+    def _load_cfg(self, path: str) -> Dict:
+        with open(path, "r") as cfg:
+            return safe_load(cfg.read())
+
+    def run_activity_manager(self) -> None:
+        self.activity_manager.main()
+
+    def main(self) -> None:
+        self.run(self.TOKEN)
+
 class Server:
     """
     Guild parent. Manages values like sweep time.
@@ -77,25 +137,27 @@ class CommandsManager(commands.Cog):
     Controls all incoming '/' commands and returns the correct response
     """
     
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot: commands.Bot = bot
+    def __init__(self, bot: ActivityBot) -> None:
+        self.bot: ActivityBot = bot
 
-    @app_commands.command(name="status", description="Test bot is responding.")
+        self.graph_manager: GraphManager = GraphManager(self.bot.database_manager)
+
+    @app_commands.command(name="bot_status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
         return await interaction.response.send_message("`🟢 Activity bot is online...`")
 
-    @app_commands.command(name="mystatustime", description="Graph of time spent on each status")
-    async def statgraph(self, interaction: Interaction, user: Member|None = None):
+    @app_commands.command(name="simple_status", description="Graph of time spent on each simple status")
+    async def simple_status_graph(self, interaction: Interaction, user: Member | None = None):
         if user == None:
             user = interaction.user
         
-        username = user.nick
-        userid = user.id
+        username = user.name
+        user_id = user.id
 
-        graph = GraphManager.UserOnlineGraph(username=username, userid=userid)
-        interaction.response.send_message(file=File(graph))
+        graph_file = self.graph_manager.get_user_simple_time(user_id, username)
+        await interaction.response.send_message(file=File(graph_file))
 
-        remove(graph)        
+        remove(graph_file)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -157,8 +219,8 @@ class ActivityManager:
     Tracks the users activity and status
     """
 
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot: commands.Bot = bot
+    def __init__(self, bot: ActivityBot) -> None:
+        self.bot: ActivityBot = bot
 
         self.guilds: List[Guild] = []
         self.servers: List[Server] = []
@@ -210,63 +272,3 @@ class ActivityManager:
     
     def main(self) -> None:
         self.sweep_manager.run()
-
-class ActivityBot(commands.Bot):
-    """
-    Discord activity bot
-    """
-
-    def __init__(self, config_path: str) -> None:
-        """
-        intents:
-            Read Messages / View Channels
-            Send Messages
-            Read Message History
-        """
-
-        self.CONFIG: Dict = self._load_cfg(config_path)
-        self.TOKEN: str = self.__get_token()
-
-        DEBUG = self.CONFIG['debug']
-
-        intents = Intents.default()
-        intents.members = True
-        intents.presences = True
-        
-        super().__init__(intents=intents, command_prefix="^")
-
-        self.database_manager: DatabaseManager = DatabaseManager()
-
-        self.activity_manager: ActivityManager = ActivityManager(self)
-
-        self.running: bool = False
-
-        asyncio.run(self.__init_cogs())
-
-    async def __init_cogs(self) -> None:
-        await self.add_cog(CommandsManager(self))
-
-    def __get_token(self) -> str:
-        try:
-            with open(self.CONFIG["token_path"], "r") as token_raw:
-                return token_raw.read()
-
-        except FileNotFoundError:
-            print("Error while loading token!\nPlease ensure the path to the token in the config file is correct.")
-            exit()
-
-        except UnicodeError:
-            print("Error while loading token!\nPlease ensure the token file is 'utf-8' encoding and has no special characters.")
-
-        except Exception as e:
-            print(f"Error while loading token!\nError: {str(e)}!")
-
-    def _load_cfg(self, path: str) -> Dict:
-        with open(path, "r") as cfg:
-            return safe_load(cfg.read())
-
-    def run_activity_manager(self) -> None:
-        self.activity_manager.main()
-
-    def main(self) -> None:
-        self.run(self.TOKEN)
