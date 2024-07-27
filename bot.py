@@ -182,8 +182,10 @@ class CommandsManager(commands.Cog):
 
         if graph_file == "":
             await interaction.response.send_message(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
+            return
         elif graph_file == "no_best_activity":
             await interaction.response.send_message(f"'{presence}' was not found in {username}'s rich activities! Try a different query (Type '/help' for info).")
+            return
         else:
             await interaction.response.send_message(file=File(graph_file))
 
