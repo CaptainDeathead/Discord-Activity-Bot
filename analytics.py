@@ -3,6 +3,8 @@ import numpy as np
 
 from database import DatabaseManager
 
+
+
 class GraphManager:
     def __init__(self) -> None:
         pass
