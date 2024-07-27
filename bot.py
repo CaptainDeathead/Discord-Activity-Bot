@@ -145,6 +145,10 @@ class CommandsManager(commands.Cog):
     @app_commands.command(name="bot_status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
         return await interaction.response.send_message("`🟢 Activity bot is online...`")
+    
+    @app_commands.command(name="help", description="Get instructions on how to use the bot.")
+    async def help(self, interaction: Interaction):
+        return await interaction.response.send_message("Type '`/simple_status`' to view your basic Discord status. Provide another user to view them instead\nType '`/rich_status`' for more in-depth information regarding your activities. Provide another user to view them instead.\n ~ To view more information about each presence provide text in the '`presence`' argument. This will search for the closest presence to that query and show information about it.")
 
     @app_commands.command(name="simple_status", description="Graph of time spent on each basic status")
     async def simple_status_graph(self, interaction: Interaction, user: Member | None = None):
@@ -163,7 +167,7 @@ class CommandsManager(commands.Cog):
 
         remove(graph_file)
 
-    @app_commands.command(name="rich_status", description="Graph of time spent a users rich presence")
+    @app_commands.command(name="rich_status", description="Graph of time spent a users rich presence.")
     async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
         if user == None:
             user = interaction.user
