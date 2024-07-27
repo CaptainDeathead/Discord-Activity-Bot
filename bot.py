@@ -89,7 +89,7 @@ class Server:
     Guild parent. Manages values like sweep time.
     """
 
-    SWEEP_INTERVAL: int = 5 # Should be 5 (mins)
+    SWEEP_INTERVAL: int = 1 # Should be 5 (mins)
 
     def __init__(self, database_manager: DatabaseManager, guild: Guild, offset: int, get_real_activity: callable) -> None:
         self.database_manager: DatabaseManager = database_manager
@@ -99,8 +99,8 @@ class Server:
         self.next_sweep: int = self.calculate_sweep() + offset * 10
 
     def calculate_sweep(self) -> int:
-        # return time() + self.SWEEP_INTERVAL * 60
-        return time() + 0.1 * 60 # <- WARNING: THIS IS DEBUG ONLY! USE THIS FOR REAL: "return time() + self.SWEEP_INTERVAL * 60"
+        return time() + self.SWEEP_INTERVAL * 60
+        #return time() + 0.1 * 60 # <- WARNING: THIS IS DEBUG ONLY! USE THIS FOR REAL: "return time() + self.SWEEP_INTERVAL * 60"
     
     def increment_sweep(self) -> None:
         self.next_sweep += self.calculate_sweep()
