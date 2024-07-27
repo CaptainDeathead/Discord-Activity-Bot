@@ -17,8 +17,11 @@ from typing import List, Dict
 
 
 logging.basicConfig()
-logging.root.setLevel(logging.NOTSET)
-logging.basicConfig(level=logging.NOTSET)
+logging.root.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
+
+
+DEBUG: bool = False
 
 
 class Server:
@@ -44,12 +47,14 @@ class Server:
         for member in self.guild.members:
             if member.bot: continue
 
+            if DEBUG and ("captaindeathead" not in member.name): continue
+
             self.database_manager.add_user(member.id)
 
             user_data: Dict = self.database_manager.get_user_simple_time_dict(member.id)
             user_simple_time: Dict[str, int] = user_data["simple_time"]
-            
-            user_simple_time[member.status.name] += self.SWEEP_INTERVAL
+
+            user_simple_time[member.status.name] += (time() - user_data["last_update"]) / 60
 
             self.database_manager.update_user_simple_time(member.id, user_simple_time)
 
@@ -206,6 +211,8 @@ class ActivityBot(commands.Bot):
 
         self.CONFIG: Dict = self._load_cfg(config_path)
         self.TOKEN: str = self.__get_token()
+
+        DEBUG = self.CONFIG['debug']
 
         intents = Intents.default()
         intents.members = True
