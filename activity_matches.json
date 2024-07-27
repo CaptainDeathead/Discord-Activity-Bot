@@ -2,11 +2,46 @@
     "cs2": "Counter-Strike 2",
 
     "lethal company": "Lethal Company",
+    "control": "Control",
 
+    "fpschess-win64-shipping": "FPS Chess",
+    "fpschess": "FPS Chess",
+    "War": "FOXHOLE",
+    "war-win64-shipping": "FOXHOLE",
+    "launcherpatcher": "Sid Meier's Civilization VI",
+    "Installing Microsoft(R) DirectX(R)": "Call of Duty 4",
+    "PunkBuster Setup v2.7": "Call of Duty 4",
+    "Run In Safe Mode?": "Call of Duty 4",
+    "Civilization VI": "Sid Meier's Civilization VI",
+    "Sid Meier's Civilization VI (DX11)": "Sid Meier's Civilization VI",
+    "Sid Meier's Civilization VI (DX12)": "Sid Meier's Civilization VI",
+    "civilizationvi_dx12": "Sid Meier's Civilization VI",
+    "civ6": "Sid Meier's Civilization VI",
+    "tf_linux64": "Team Fortress 2",
+    "Team Fortress 2 - Direct3D 9 - 64 Bit": "Team Fortress 2",
+
+
+    "Minecraft 1.21": "Minecraft",
+    "Minecraft 1.2-": "Minecraft",
+    "Better MC [FORGE] 1.20.1": "Minecraft",
+
+    "godot.x11.opt.tools.64": "Godot Engine",
+    "Godot Engine - Project Manager": "Godot Engine",
+    "Code": "Visual Studio Code",
+
+    "Select Difficulty": "GNOME SUDOKU",
+    "Mines": "GNOME MINESWEEPER",
 
     "wineserver": "Unknown game on Linux",
     "wine64": "Unknown game on Linux",
     "srt-bwrap": "Unknown game on Linux",
     "pressure-vessel-wrap": "Unknown game on Linux",
-    "i386-linux-gnu-capsule-capture-libs": "Unknown game on Linux"
+    "i386-linux-gnu-capsule-capture-libs": "Unknown game on Linux",
+    "x86_64-linux-gnu-capsule-capture-libs": "Unknown game on Linux",
+    "unitycrashhandler64": "Unknown game on Linux",
+    "vc_redist.x86": "Unknown game on Linux",
+    "steam-runtime-launcher-interface-0": "Unknown game on Linux",
+    "Klondike": "Unknown game on Linux",
+    "unrealcefsubprocess": "Unknown game on Linux",
+    "dxsetup": "Unknown game on Linux"
 }
