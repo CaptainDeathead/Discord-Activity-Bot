@@ -11,6 +11,7 @@ from time import time, sleep
 from database import DatabaseManager
 from analytics import GraphManager
 from yaml import safe_load
+from json import loads as parse_json
 
 from typing import List, Dict
 
@@ -30,9 +31,11 @@ class Server:
 
     SWEEP_INTERVAL: int = 5 # Should be 5 (mins)
 
-    def __init__(self, database_manager: DatabaseManager, guild: Guild, offset: int) -> None:
+    def __init__(self, database_manager: DatabaseManager, guild: Guild, offset: int, get_real_activity: callable) -> None:
         self.database_manager: DatabaseManager = database_manager
         self.guild: Guild = guild
+        self.get_real_activity: callable = get_real_activity
+
         self.next_sweep: int = self.calculate_sweep() + offset * 10
 
     def calculate_sweep(self) -> int:
@@ -54,7 +57,11 @@ class Server:
             user_simple_time: Dict[str, float] = user_data["simple_time"]
 
             for activity in member.activities:
-                real_activity_name: str = get_real_activity(activity.name)
+                if activity.name is None: continue
+
+                real_activity_name: str = self.get_real_activity(activity.name)
+
+                if real_activity_name == "": continue
 
                 activity_time: Dict[str, float] = self.database_manager.get_user_rich_time_dict(member.id, real_activity_name)
                 activity_time[member.status.name] += (time() - user_data["last_update"]) / 60
@@ -99,14 +106,6 @@ class CommandsManager(commands.Cog):
         logging.info(f"Bot successfully started as {self.bot.user}.")
 
         self.bot.run_activity_manager()
-    
-class PresenceManager:
-    """
-    Tracks the users prescence
-    """
-
-    def __init__(self) -> None:
-        ...
 
 class SweepManager:
     """
@@ -171,7 +170,8 @@ class ActivityManager:
         self.sweep_manager: SweepManager = SweepManager(self.update_servers)
 
     def _load_activity_matches(self) -> Dict[str, str]:
-        ...
+        with open(self.bot.CONFIG["activity_matches_path"], "r") as activity_matches_file:
+            return parse_json(activity_matches_file.read())
 
     def _load_guilds(self) -> List[Server]:
         servers: List[Server] = []
@@ -179,11 +179,14 @@ class ActivityManager:
         offset: int = 0
         
         for guild in self.guilds:
-            servers.append(Server(self.bot.database_manager, guild, offset))
+            servers.append(Server(self.bot.database_manager, guild, offset, self.get_real_activity))
 
             offset += 1
 
         return servers
+    
+    def get_real_activity(self, activity_name: str) -> str:
+        return self.ACTIVITY_MATCHES.get(activity_name, activity_name)
         
     def fetch_guilds(self) -> List[Guild]:
         logging.info("Updating guilds...")
