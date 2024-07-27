@@ -140,5 +140,3 @@ if __name__ == "__main__":
     #dbManager.update_user_rich_presence_time(0, "test", {"online": 30, "idle": 20, "dnd": 30})
     for user in dbManager.users.find(): print(user)
     #dbManager.delete_database()
-
-    #dbManager.test()
