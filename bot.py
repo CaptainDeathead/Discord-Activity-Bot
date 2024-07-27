@@ -1,7 +1,7 @@
 import logging
 import asyncio
 
-from discord import app_commands, Intents, Interaction, Guild, Member, Status, File
+from discord import app_commands, activity, Intents, Interaction, Guild, Member, Status, File
 from discord.ext import commands
 
 from os import remove
@@ -196,6 +196,8 @@ class CommandsManager(commands.Cog):
         self.bot.running = True
 
         logging.info(f"Bot successfully started as {self.bot.user}.")
+
+        await self.bot.change_presence(status=Status.online, activity=activity.CustomActivity("Type '/help' for more info."))
 
         self.bot.run_activity_manager()
 
