@@ -96,7 +96,7 @@ class Server:
         self.guild: Guild = guild
         self.get_real_activity: callable = get_real_activity
 
-        self.next_sweep: int = self.calculate_sweep() + offset * 10
+        self.next_sweep: int = self.calculate_sweep() + offset * 60
 
     def calculate_sweep(self) -> int:
         return time() + self.SWEEP_INTERVAL * 60

@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 from pymongo.database import Database
+from pymongo.server_api import ServerApi
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 
@@ -7,6 +8,11 @@ from time import time
 from copy import deepcopy
 
 from typing import Dict
+
+URI: str = ""
+
+with open("./mongodb_URI.txt", "r") as f:
+    URI = f.read()
 
 DEFAULT_USER_STATISTICS: Dict = {
     "last_update": time(),
@@ -44,7 +50,7 @@ class DatabaseManager:
     """
 
     def __init__(self) -> None:
-        self.db_client: MongoClient = MongoClient("mongodb://localhost:27017/")
+        self.db_client: MongoClient = MongoClient(URI, server_api=ServerApi('1'))
         self.db: Database = self.db_client["db"]
         self.users: Collection = self.db["users"]
 
