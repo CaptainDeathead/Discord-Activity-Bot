@@ -106,14 +106,6 @@ class CommandsManager(commands.Cog):
         logging.info(f"Bot successfully started as {self.bot.user}.")
 
         self.bot.run_activity_manager()
-    
-class PresenceManager:
-    """
-    Tracks the users prescence
-    """
-
-    def __init__(self) -> None:
-        ...
 
 class SweepManager:
     """
