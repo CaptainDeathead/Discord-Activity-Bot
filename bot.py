@@ -1,11 +1,10 @@
 import logging
 import asyncio
 
-from os import remove
-
 from discord import app_commands, Intents, Interaction, Guild, Member, Status, File
 from discord.ext import commands
 
+from os import remove
 from threading import Thread
 from time import time, sleep
 
@@ -51,8 +50,16 @@ class Server:
 
             self.database_manager.add_user(member.id)
 
-            user_data: Dict = self.database_manager.get_user_simple_time_dict(member.id)
-            user_simple_time: Dict[str, int] = user_data["simple_time"]
+            user_data: Dict = self.database_manager.get_user_time_dict(member.id)
+            user_simple_time: Dict[str, float] = user_data["simple_time"]
+
+            for activity in member.activities:
+                real_activity_name: str = get_real_activity(activity.name)
+
+                activity_time: Dict[str, float] = self.database_manager.get_user_rich_time_dict(member.id, real_activity_name)
+                activity_time[member.status.name] += (time() - user_data["last_update"]) / 60
+
+                self.database_manager.update_user_rich_presence_time(member.id, real_activity_name, activity_time)
 
             user_simple_time[member.status.name] += (time() - user_data["last_update"]) / 60
 
@@ -157,9 +164,14 @@ class ActivityManager:
         self.guilds: List[Guild] = []
         self.servers: List[Server] = []
 
+        self.ACTIVITY_MATCHES: Dict[str, str] = self._load_activity_matches()
+
         self.update_servers()
 
         self.sweep_manager: SweepManager = SweepManager(self.update_servers)
+
+    def _load_activity_matches(self) -> Dict[str, str]:
+        ...
 
     def _load_guilds(self) -> List[Server]:
         servers: List[Server] = []

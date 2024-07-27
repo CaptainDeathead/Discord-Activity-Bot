@@ -51,12 +51,19 @@ class DatabaseManager:
     def get_user(self, user_id: int) -> Cursor | None:
         for user in self.users.find({str(user_id): {"$exists": True}}): return user
 
-    def get_user_simple_time_dict(self, user_id: int) -> Dict | None:
+    def get_user_time_dict(self, user_id: int) -> Dict | None:
         user: Cursor | None = self.get_user(user_id)
 
         if user is None: return None
 
         return user[str(user_id)]
+    
+    def get_user_rich_time_dict(self, user_id: int, activity_name: str) -> Dict | None:
+        user: Cursor | None = self.get_user(user_id)
+
+        if user is None: return None
+
+        return user[str(user_id)]["rich_presence_time"].get(activity_name, {"online": 0, "idle": 0, "dnd": 0, "offline": 0})
 
     def add_user(self, user_id: int) -> None:
         if self.get_user(user_id): return
