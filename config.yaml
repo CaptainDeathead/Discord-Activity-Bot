@@ -1,1 +1,2 @@
 token_path: "./token.txt"
+debug: true
