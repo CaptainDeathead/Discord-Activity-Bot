@@ -1,3 +1,3 @@
 token_path: "./token.txt"
 activity_matches_path: "./activity_matches.json"
-debug: true
+debug: false

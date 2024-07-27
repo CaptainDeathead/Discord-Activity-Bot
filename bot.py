@@ -146,7 +146,7 @@ class CommandsManager(commands.Cog):
     async def ping(self, interaction: Interaction):
         return await interaction.response.send_message("`🟢 Activity bot is online...`")
 
-    @app_commands.command(name="simple_status", description="Graph of time spent on each simple status")
+    @app_commands.command(name="simple_status", description="Graph of time spent on each basic status")
     async def simple_status_graph(self, interaction: Interaction, user: Member | None = None):
         if user == None:
             user = interaction.user
@@ -154,8 +154,34 @@ class CommandsManager(commands.Cog):
         username = user.name
         user_id = user.id
 
-        graph_file = self.graph_manager.get_user_simple_time(user_id, username)
-        await interaction.response.send_message(file=File(graph_file))
+        graph_file: str = self.graph_manager.get_user_simple_time(user_id, username)
+
+        if graph_file == "":
+            await interaction.response.send_message(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
+        else:
+            await interaction.response.send_message(file=File(graph_file))
+
+        remove(graph_file)
+
+    @app_commands.command(name="rich_status", description="Graph of time spent a users rich presence")
+    async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
+        if user == None:
+            user = interaction.user
+        
+        username = user.name
+        user_id = user.id
+
+        if isinstance(presence, str):
+            graph_file: str = self.graph_manager.get_user_rich_time_specific(user_id, username, presence)
+        else:
+            graph_file: str = self.graph_manager.get_user_rich_time(user_id, username)
+
+        if graph_file == "":
+            await interaction.response.send_message(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
+        elif graph_file == "no_best_activity":
+            await interaction.response.send_message(f"'{presence}' was not found in {username}'s rich activities! Try a different query (Type '/help' for info).")
+        else:
+            await interaction.response.send_message(file=File(graph_file))
 
         remove(graph_file)
 
