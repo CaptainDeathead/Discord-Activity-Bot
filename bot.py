@@ -167,7 +167,7 @@ class CommandsManager(commands.Cog):
 
         remove(graph_file)
 
-    @app_commands.command(name="rich_status", description="Graph of time spent a users rich presence.")
+    @app_commands.command(name="rich_status", description="Graph of time spent on a users rich presence.")
     async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
         if user == None:
             user = interaction.user
@@ -190,6 +190,33 @@ class CommandsManager(commands.Cog):
             await interaction.response.send_message(file=File(graph_file))
 
         remove(graph_file)
+
+    @app_commands.command(name="server_rich_status", description="Graph of time a server spends on each rich presence.")
+    async def rich_server_graph(self, interaction: Interaction):
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name
+
+        if server == None:
+            return await interaction.response.send_message("Server not found.")
+        
+        member_list = []
+        for member in server.members:
+            member_list.append(member.id)
+        
+        if member_list == []:
+            return await interaction.response.send_message("Guild info not found")
+        
+        graph_file = self.graph_manager.get_server_rich_time(member_list, server_name)
+
+        if graph_file == "":
+            return await interaction.response.send_message("Error")
+        
+        await interaction.response.send_message(file=File(graph_file))
+        
+        remove(graph_file)
+        
+
 
     @commands.Cog.listener()
     async def on_ready(self):
