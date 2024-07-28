@@ -202,15 +202,15 @@ class CommandsManager(commands.Cog):
         
         member_list = []
         for member in server.members:
-            member_list.append(member.id)
+            if not member.bot: member_list.append(member.id)
         
         if member_list == []:
-            return await interaction.response.send_message("Guild info not found")
+            return await interaction.response.send_message("Guild info not found!")
         
         graph_file = self.graph_manager.get_server_rich_time(member_list, server_name)
 
         if graph_file == "":
-            return await interaction.response.send_message("Error")
+            return await interaction.response.send_message("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")
         
         await interaction.response.send_message(file=File(graph_file))
         
