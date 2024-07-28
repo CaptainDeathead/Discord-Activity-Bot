@@ -42,8 +42,41 @@ class GraphManager:
                 best_string = string
 
         return best_string
+    
+    def _get_str_value(self, string: str) -> int:
+        value: int = 0
+        
+        for char in string: value += ord(char)
+
+        return value
+    
+    def remove_minority_keys(self, dictionary: Dict[any, int]) -> Dict[any, any]:
+        total: int = sum(dictionary.values())
+        new_dictionary: Dict[str, int] = {}
+
+        for label in dictionary:
+            if dictionary[label] / total < 0.01:
+                new_dictionary[" " * self._get_str_value(label)] = dictionary[label]
+            else:
+                new_dictionary[label] = dictionary[label]
+
+        return new_dictionary
+    
+    def remove_minority_items(self, str_list: List[str], value_list: List[int]) -> List[str]:
+        total: int = sum(value_list)
+        new_str_list: List[str] = []
+
+        for i, label in enumerate(str_list):
+            if value_list[i] / total < 0.01:
+                new_str_list.append(" " * self._get_str_value(label))
+            else:
+                new_str_list.append(label)
+
+        return new_str_list
 
     def format_time(self, percent: float, time_list: List[float]) -> str:
+        if percent < 5: return ""
+        
         absolute = int(round(percent / 100. * sum(time_list)))
 
         hours: int = absolute // 60
@@ -90,7 +123,8 @@ class GraphManager:
 
         file_name: str = f"{user_id}_rich_times.png"
 
-        plot.pie(activity_times, labels=activity_names, colors=colors, autopct=lambda percent: self.format_time(percent, activity_times))
+        plot.pie(activity_times, labels=self.remove_minority_items(activity_names, activity_times),
+                 colors=colors, autopct=lambda percent: self.format_time(percent, activity_times))
         plot.title(f"{username}'s rich status breakdown")
         plot.savefig(file_name)
         plot.close()
@@ -143,7 +177,8 @@ class GraphManager:
                     server_activities[activity] = sum(activities[activity].values())
                     colors.append(self._random_color())
         
-        plot.pie(server_activities.values(), labels=server_activities.keys(), colors=colors, autopct=lambda percent: self.format_time(percent, server_activities.values()))
+        plot.pie(server_activities.values(), labels=self.remove_minority_keys(server_activities).keys(),
+                 colors=colors, autopct=lambda percent: self.format_time(percent, server_activities.values()))
         plot.title(f"{server_name}'s rich status breakdown")
         plot.savefig(file_name)
         plot.close()
