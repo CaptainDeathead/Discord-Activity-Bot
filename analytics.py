@@ -104,13 +104,11 @@ class GraphManager:
         if user_data is None: return ""
 
         activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
-
         best_activity: str = self._search_list(activities, query)
 
         if best_activity == "": return "no_best_activity"
 
         simple_time: Dict[str, int] = user_data[str(user_id)]["rich_presence_time"][best_activity]
-
         time_list: List[int] = [int(time) for time in simple_time.values()]
         
         labels: Tuple[str] = ("Online", "Idle", "Do Not Disturb", "Offline")
@@ -125,3 +123,29 @@ class GraphManager:
 
         return file_name
         # remember to delete the file once sent
+    
+    def get_server_rich_time(self, members: list, server_name: str) -> str:
+        server_activities: Dict[str, int] = {}
+        colors: List[Tuple[int, int, int]] = []
+        file_name: str = f"{server_name.replace(" ", "_")}_server_rich.png"
+
+        for user_id in members:
+            user_data = self.dbManager.get_user(user_id)
+
+            if user_data is None: return ""
+
+            activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
+
+            for activity in activities:
+                if activity in server_activities:
+                    server_activities[activity] += sum(activities[activity].values())
+                else:
+                    server_activities[activity] = sum(activities[activity].values())
+                    colors.append(self._random_color())
+        
+        plot.pie(server_activities.values(), labels=server_activities.keys(), colors=colors, autopct=lambda percent: self.format_time(percent, server_activities.values()))
+        plot.title(f"{server_name}'s rich status breakdown")
+        plot.savefig(file_name)
+        plot.close()
+
+        return file_name
