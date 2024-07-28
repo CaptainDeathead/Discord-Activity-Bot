@@ -125,3 +125,32 @@ class GraphManager:
 
         return file_name
         # remember to delete the file once sent
+    
+    def get_server_rich_time(self, members: list, server_name: str) -> str:
+        
+        activity_names: List[str] = []
+        activity_times: List[int] = []
+        colors: List[Tuple[int, int, int]] = []
+        file_name: str = f"{server_name.replace(" ", "_")}_server_rich.png"
+
+        for user_id in members:
+            user_data = self.dbManager.get_user(user_id)
+            if user_data is None: return ""
+            activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
+
+            for activity in activities:
+                if activity in activity_names:
+                    aindex = activity_names.index(activity)
+                    atime = activity_times[aindex]
+                    activity_times[aindex] = atime + sum(activities[activity].values())
+                else:
+                    activity_names.append(activities)
+                    activity_times.append(sum(activities[activity].values()))
+                    colors.append(self._random_color())
+        
+        plot.pie(activity_times, labels=activity_names, colors=colors, autopct=lambda percent: self.format_time(percent, activity_times))
+        plot.title(f"{server_name}'s rich status breakdown")
+        plot.savefig(file_name)
+        plot.close()
+
+        return file_name
