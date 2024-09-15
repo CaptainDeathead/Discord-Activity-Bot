@@ -8,6 +8,7 @@ mongodb_URI.txt
 Python-3.12.4/
 *.png
 nohup.out
+run.sh
 
 
 # Byte-compiled / optimized / DLL files
