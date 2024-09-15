@@ -116,6 +116,9 @@ class Server:
             user_data: Dict = self.database_manager.get_user_time_dict(member.id)
             user_simple_time: Dict[str, float] = user_data["simple_time"]
 
+            if time() - user_data["last_update"] > 60 * 20: # if the user has not been updated in the last 20 mins, do not update in case of bot crash
+                user_data["last_update"] = time()
+
             for activity in member.activities:
                 if activity.name is None: continue
 
@@ -152,6 +155,8 @@ class CommandsManager(commands.Cog):
 
     @app_commands.command(name="simple_status", description="Graph of time spent on each basic status")
     async def simple_status_graph(self, interaction: Interaction, user: Member | None = None):
+        await interaction.response.defer()
+
         if user == None:
             user = interaction.user
         
@@ -161,14 +166,16 @@ class CommandsManager(commands.Cog):
         graph_file: str = self.graph_manager.get_user_simple_time(user_id, username)
 
         if graph_file == "":
-            await interaction.response.send_message(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
+            await interaction.followup.send(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
         else:
-            await interaction.response.send_message(file=File(graph_file))
+            await interaction.followup.send(file=File(graph_file))
 
         remove(graph_file)
 
     @app_commands.command(name="rich_status", description="Graph of time spent on a users rich presence.")
     async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
+        await interaction.response.defer()
+
         if user == None:
             user = interaction.user
         
@@ -181,45 +188,50 @@ class CommandsManager(commands.Cog):
             graph_file: str = self.graph_manager.get_user_rich_time(user_id, username)
 
         if graph_file == "":
-            await interaction.response.send_message(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
+            await interaction.followup.send(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
             return
         elif graph_file == "no_best_activity":
-            await interaction.response.send_message(f"'{presence}' was not found in {username}'s rich activities! Try a different query (Type '/help' for info).")
+            await interaction.followup.send(f"'{presence}' was not found in {username}'s rich activities! Try a different query (Type '/help' for info).")
             return
         else:
-            await interaction.response.send_message(file=File(graph_file))
+            await interaction.followup.send(file=File(graph_file))
 
         remove(graph_file)
 
     @app_commands.command(name="server_rich_status", description="Graph of time a server spends on each rich presence.")
     async def rich_server_graph(self, interaction: Interaction):
+        await interaction.response.defer()
+
         user = interaction.user
         server = interaction.guild
         server_name = server.name
 
         if server == None:
-            return await interaction.response.send_message("Server not found.")
-        
+            return await interaction.followup.send("Server not found.")
+
         member_list = []
         for member in server.members:
             if not member.bot: member_list.append(member.id)
         
         if member_list == []:
-            return await interaction.response.send_message("Guild info not found!")
+            return await interaction.followup.send("Guild info not found!")
         
         graph_file = self.graph_manager.get_server_rich_time(member_list, server_name)
 
         if graph_file == "":
-            return await interaction.response.send_message("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")
+            return await interaction.followup.send("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")
         
-        await interaction.response.send_message(file=File(graph_file))
-        
+        #await interaction.response.send_message(file=File(graph_file))
+        await interaction.followup.send(file=File(graph_file))
+
         remove(graph_file)
         
 
 
     @commands.Cog.listener()
     async def on_ready(self):
+        if self.bot.running: return
+
         await self.bot.tree.sync()
 
         self.bot.running = True
