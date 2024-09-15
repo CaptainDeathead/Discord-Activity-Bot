@@ -5,6 +5,9 @@ mongodb_URI.txt
 # vscode
 .vscode/
 
+Python-3.12.4/
+*.png
+nohup.out
 
 
 # Byte-compiled / optimized / DLL files
