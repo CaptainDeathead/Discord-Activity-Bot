@@ -1,10 +1,11 @@
 import logging
 import asyncio
 
-from discord import app_commands, activity, Intents, Interaction, Guild, Member, Status, File
+from discord import app_commands, activity, Intents, Interaction, Guild, Message, Member, Status, File
 from discord.ext import commands
 
-from os import remove
+from os import remove, execv
+from sys import executable, argv
 from threading import Thread
 from time import time, sleep
 
@@ -42,6 +43,7 @@ class ActivityBot(commands.Bot):
         self.TOKEN: str = self.__get_token()
 
         DEBUG = self.CONFIG['debug']
+        self.RESTART_HOUR_TIMER = self.CONIG['restart_hour_timer']
 
         intents = Intents.default()
         intents.members = True
@@ -53,6 +55,7 @@ class ActivityBot(commands.Bot):
         self.activity_manager: ActivityManager = ActivityManager(self)
 
         self.running: bool = False
+        self.init_time = time()
 
         asyncio.run(self.__init_cogs())
 
@@ -225,8 +228,12 @@ class CommandsManager(commands.Cog):
         await interaction.followup.send(file=File(graph_file))
 
         remove(graph_file)
-        
 
+    @commands.Cog.listener()
+    async def on_message(self, message: Message) -> None:
+        if time() - self.bot.init_time >= self.bot.RESTART_HOUR_TIMER * 60 * 60: # 2 hours = 2 * 60 mins * 60 secs
+            logging.warning("Bot is restarting... Reason: Time since bot initialization > 2 hours! Command: \"execv(executable, ['python'] + argv)\"")
+            execv(executable, ['python'] + argv)
 
     @commands.Cog.listener()
     async def on_ready(self):
