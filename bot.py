@@ -43,7 +43,7 @@ class ActivityBot(commands.Bot):
         self.TOKEN: str = self.__get_token()
 
         DEBUG = self.CONFIG['debug']
-        self.RESTART_HOUR_TIMER = self.CONIG['restart_hour_timer']
+        self.RESTART_HOUR_TIMER = self.CONFIG['restart_hour_timer']
 
         intents = Intents.default()
         intents.members = True
