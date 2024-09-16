@@ -232,7 +232,10 @@ class CommandsManager(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: Message) -> None:
         if time() - self.bot.init_time >= self.bot.RESTART_HOUR_TIMER * 60 * 60: # 2 hours = 2 * 60 mins * 60 secs
-            logging.warning("Bot is restarting... Reason: Time since bot initialization > 2 hours! Command: \"execv(executable, ['python'] + argv)\"")
+            logging.warning("Bot is restarting... Reason: Time since bot initialization > 2 hours! Command: \"execv(executable, ['python'] + argv)\". Waiting 5 mins before proceding...")
+            
+            self.bot.init_time = time()
+            sleep(60*5)
             execv(executable, ['python'] + argv)
 
     @commands.Cog.listener()
