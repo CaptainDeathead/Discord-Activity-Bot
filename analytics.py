@@ -50,24 +50,17 @@ class GraphManager:
 
         return best_string
     
-    def _get_str_value(self, string: str) -> int:
-        value: int = 0
-        
-        for char in string: value += ord(char)
-
-        return value
-    
-    def remove_minority_keys(self, dictionary: Dict[any, int]) -> Dict[any, any]:
+    def remove_minority_keys(self, dictionary: Dict[any, int]) -> List[str]:
         total: int = sum(dictionary.values())
-        new_dictionary: Dict[str, int] = {}
+        new_str_list: List[str] = []
 
         for label in dictionary:
             if dictionary[label] / total < 0.01:
-                new_dictionary[" " * self._get_str_value(label)] = dictionary[label]
+                new_str_list.append(" ")
             else:
-                new_dictionary[label] = dictionary[label]
+                new_str_list.append(label)
 
-        return new_dictionary
+        return new_str_list
     
     def remove_minority_items(self, str_list: List[str], value_list: List[int]) -> List[str]:
         total: int = sum(value_list)
@@ -75,7 +68,7 @@ class GraphManager:
 
         for i, label in enumerate(str_list):
             if value_list[i] / total < 0.01:
-                new_str_list.append(" " * self._get_str_value(label))
+                new_str_list.append(" ")
             else:
                 new_str_list.append(label)
 
@@ -180,7 +173,7 @@ class GraphManager:
             for status in user_statuses:
                 server_statuses[self.DISPLAY_STATUS[status]] += user_statuses[status]
         
-        plot.pie(server_statuses.values(), labels=self.remove_minority_keys(server_statuses).keys(),
+        plot.pie(server_statuses.values(), labels=self.remove_minority_keys(server_statuses),
                  colors=colors, autopct=lambda percent: self.format_time(percent, server_statuses.values()))
         plot.title(f"{server_name}'s simple status breakdown")
         plot.savefig(file_name)
@@ -207,7 +200,7 @@ class GraphManager:
                     server_activities[activity] = sum(activities[activity].values())
                     colors.append(self._random_color())
         
-        plot.pie(server_activities.values(), labels=self.remove_minority_keys(server_activities).keys(),
+        plot.pie(server_activities.values(), labels=self.remove_minority_keys(server_activities),
                  colors=colors, autopct=lambda percent: self.format_time(percent, server_activities.values()))
         plot.title(f"{server_name}'s rich status breakdown")
         plot.savefig(file_name)

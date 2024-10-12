@@ -232,6 +232,8 @@ class CommandsManager(commands.Cog):
     async def rich_server_graph(self, interaction: Interaction):
         await interaction.response.defer()
 
+        logging.info(f"Recieved ")
+
         user = interaction.user
         server = interaction.guild
         server_name = server.name
