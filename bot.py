@@ -175,6 +175,33 @@ class CommandsManager(commands.Cog):
 
         remove(graph_file)
 
+    @app_commands.command(name="server_simple_status", description="Graph of time spent in the server.")
+    async def server_simple_status(self, interaction: Interaction):
+        await interaction.response.defer()
+
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name
+
+        if server is None:
+            return await interaction.followup.send("Server not found.")
+
+        member_list = []
+        for member in server.members:
+            if not member.bot: member_list.append(member.id)
+
+        if len(member_list) == 0:
+            return await interaction.followup.send("Guild info not found!")
+
+        graph_file = self.graph_manager.get_server_simple_time(member_list, server_name)
+
+        if graph_file == "":
+            return await interaction.followup.send("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")
+
+        await interaction.followup.send(file=File(graph_file))
+
+        remove(graph_file)
+
     @app_commands.command(name="rich_status", description="Graph of time spent on a users rich presence.")
     async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
         await interaction.response.defer()
@@ -209,7 +236,7 @@ class CommandsManager(commands.Cog):
         server = interaction.guild
         server_name = server.name
 
-        if server == None:
+        if server is None:
             return await interaction.followup.send("Server not found.")
 
         member_list = []
@@ -224,7 +251,6 @@ class CommandsManager(commands.Cog):
         if graph_file == "":
             return await interaction.followup.send("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")
         
-        #await interaction.response.send_message(file=File(graph_file))
         await interaction.followup.send(file=File(graph_file))
 
         remove(graph_file)
@@ -235,8 +261,8 @@ class CommandsManager(commands.Cog):
             logging.warning("Bot is restarting... Reason: Time since bot initialization > 2 hours! Command: \"execv(executable, ['python'] + argv)\". Waiting 5 mins before proceding...")
             
             self.bot.init_time = time()
-            sleep(60*5)
-            execv(executable, ['python'] + argv)
+            await asyncio.sleep(60*5) # wait 5 mins before restart
+            await execv(executable, ['python'] + argv)
 
     @commands.Cog.listener()
     async def on_ready(self):

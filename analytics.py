@@ -21,6 +21,13 @@ class GraphManager:
         "black": (0, 0, 0)
     }
 
+    DISPLAY_STATUS: Dict[str, str] = {
+        "online": "Online",
+        "idle": "Idle",
+        "dnd": "Do Not Disturb",
+        "offline": "Offline"
+    }
+
     def __init__(self, database_manager: DatabaseManager) -> None:
         self.dbManager: DatabaseManager = database_manager
 
@@ -157,6 +164,29 @@ class GraphManager:
 
         return file_name
         # remember to delete the file once sent
+
+    def get_server_simple_time(self, members: list, server_name: str) -> str:
+        server_statuses: Dict[str, int] = {"Online": 0, "Idle": 0, "Do Not Disturb": 0, "Offline": 0}
+        colors: Tuple[Tuple[int, int, int]] = (self.COLORS["green"], self.COLORS["yellow"], self.COLORS["red"], self.COLORS["grey"])
+        file_name: str = f"{server_name.replace(" ", "_")}_server_simple.png"
+
+        for user_id in members:
+            user_time_data = self.dbManager.get_user_time_dict(user_id)
+
+            if user_time_data is None: return ""
+
+            user_statuses = user_time_data["simple_time"]
+
+            for status in user_statuses:
+                server_statuses[self.DISPLAY_STATUS[status]] += user_statuses[status]
+        
+        plot.pie(server_statuses.values(), labels=self.remove_minority_keys(server_statuses).keys(),
+                 colors=colors, autopct=lambda percent: self.format_time(percent, server_statuses.values()))
+        plot.title(f"{server_name}'s simple status breakdown")
+        plot.savefig(file_name)
+        plot.close()
+
+        return file_name
     
     def get_server_rich_time(self, members: list, server_name: str) -> str:
         server_activities: Dict[str, int] = {}

@@ -19,7 +19,13 @@
     "civ6": "Sid Meier's Civilization VI",
     "tf_linux64": "Team Fortress 2",
     "Team Fortress 2 - Direct3D 9 - 64 Bit": "Team Fortress 2",
-
+    "helldivers2": "Helldivers 2",
+    "stormworks64": "Stormworks",
+    "hl2_linux": "Half Life",
+    "people playground": "People Playground",
+    "hoi4": "Hearts of Iron IV",
+    "doomx64": "Doom",
+    "flightsimulator": "Microsoft Flight Simulator",
 
     "Minecraft 1.21": "Minecraft",
     "Minecraft 1.2-": "Minecraft",
@@ -28,6 +34,7 @@
     "godot.x11.opt.tools.64": "Godot Engine",
     "Godot Engine - Project Manager": "Godot Engine",
     "Code": "Visual Studio Code",
+    "vscode": "Visual Studio Code",
 
     "Select Difficulty": "GNOME SUDOKU",
     "Mines": "GNOME MINESWEEPER",
@@ -43,5 +50,6 @@
     "steam-runtime-launcher-interface-0": "Unknown game on Linux",
     "Klondike": "Unknown game on Linux",
     "unrealcefsubprocess": "Unknown game on Linux",
-    "dxsetup": "Unknown game on Linux"
+    "dxsetup": "Unknown game on Linux",
+    "steam-runtime-launch-client": "Unknown game on Linux"
 }
