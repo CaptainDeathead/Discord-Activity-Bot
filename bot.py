@@ -150,15 +150,21 @@ class CommandsManager(commands.Cog):
 
     @app_commands.command(name="bot_status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
+        logging.info("Recieved 'ping' command...")
+
         return await interaction.response.send_message("`🟢 Activity bot is online...`")
     
     @app_commands.command(name="help", description="Get instructions on how to use the bot.")
     async def help(self, interaction: Interaction):
+        logging.info("Recieved 'help' command...")
+
         return await interaction.response.send_message("Type '`/simple_status`' to view your basic Discord status. Provide another user to view them instead\nType '`/rich_status`' for more in-depth information regarding your activities. Provide another user to view them instead.\n ~ To view more information about each presence provide text in the '`presence`' argument. This will search for the closest presence to that query and show information about it.")
 
     @app_commands.command(name="simple_status", description="Graph of time spent on each basic status")
     async def simple_status_graph(self, interaction: Interaction, user: Member | None = None):
         await interaction.response.defer()
+
+        logging.info("Recieved 'simple_status' command...")
 
         if user == None:
             user = interaction.user
@@ -178,6 +184,8 @@ class CommandsManager(commands.Cog):
     @app_commands.command(name="server_simple_status", description="Graph of time spent in the server.")
     async def server_simple_status(self, interaction: Interaction):
         await interaction.response.defer()
+
+        logging.info("Recieved 'server_simple_status' command...")
 
         user = interaction.user
         server = interaction.guild
@@ -206,6 +214,8 @@ class CommandsManager(commands.Cog):
     async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
         await interaction.response.defer()
 
+        logging.info("Recieved 'rich_status' command...")
+
         if user == None:
             user = interaction.user
         
@@ -232,7 +242,7 @@ class CommandsManager(commands.Cog):
     async def rich_server_graph(self, interaction: Interaction):
         await interaction.response.defer()
 
-        logging.info(f"Recieved ")
+        logging.info(f"Recieved 'server_rich_status' command...")
 
         user = interaction.user
         server = interaction.guild
