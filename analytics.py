@@ -49,6 +49,9 @@ class GraphManager:
                 best_string = string
 
         return best_string
+
+    def get_user_id(self, username: str) -> int | None:
+        return self.dbManager.get_user_id(username)
     
     def remove_minority_keys(self, dictionary: Dict[any, int]) -> List[str]:
         total: int = sum(dictionary.values())

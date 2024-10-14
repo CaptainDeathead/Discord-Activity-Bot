@@ -14,6 +14,8 @@ from analytics import GraphManager
 from yaml import safe_load
 from json import loads as parse_json
 
+from webserver import WebServer
+
 from typing import List, Dict
 
 
@@ -44,6 +46,10 @@ class ActivityBot(commands.Bot):
 
         DEBUG = self.CONFIG['debug']
         self.RESTART_HOUR_TIMER = self.CONFIG['restart_hour_timer']
+        self.ENABLE_WEBSERVER = self.CONFIG['enable_webserver']
+        
+        if self.ENABLE_WEBSERVER:
+            self.WEBSERVER_PORT = self.CONFIG['webserver_port']
 
         intents = Intents.default()
         intents.members = True
@@ -53,14 +59,19 @@ class ActivityBot(commands.Bot):
 
         self.database_manager: DatabaseManager = DatabaseManager()
         self.activity_manager: ActivityManager = ActivityManager(self)
-
+        self.graph_manager: GraphManager = GraphManager(self.database_manager)
+        
+        if self.ENABLE_WEBSERVER:
+            self.web_server: Thread = Thread(target=lambda: WebServer(self.graph_manager, self.WEBSERVER_PORT))
+            self.web_server.start()
+        
         self.running: bool = False
         self.init_time = time()
 
         asyncio.run(self.__init_cogs())
 
     async def __init_cogs(self) -> None:
-        await self.add_cog(CommandsManager(self))
+        await self.add_cog(CommandsManager(self, self.graph_manager))
 
     def __get_token(self) -> str:
         try:
@@ -137,16 +148,17 @@ class Server:
             user_simple_time[member.status.name] += (time() - user_data["last_update"]) / 60
 
             self.database_manager.update_user_simple_time(member.id, user_simple_time)
+            self.database_manager.update_user_username(member.id, member.name)
 
 class CommandsManager(commands.Cog):
     """
     Controls all incoming '/' commands and returns the correct response
     """
     
-    def __init__(self, bot: ActivityBot) -> None:
+    def __init__(self, bot: ActivityBot, graph_manager: GraphManager) -> None:
         self.bot: ActivityBot = bot
 
-        self.graph_manager: GraphManager = GraphManager(self.bot.database_manager)
+        self.graph_manager: GraphManager = graph_manager
 
     @app_commands.command(name="bot_status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
@@ -166,7 +178,7 @@ class CommandsManager(commands.Cog):
 
         logging.info("Recieved 'simple_status' command...")
 
-        if user == None:
+        if user is None:
             user = interaction.user
         
         username = user.name

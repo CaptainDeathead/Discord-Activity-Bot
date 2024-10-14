@@ -57,6 +57,16 @@ class DatabaseManager:
     def get_user(self, user_id: int) -> Cursor | None:
         for user in self.users.find({str(user_id): {"$exists": True}}): return user
 
+    def get_user_id(self, username: str) -> int | None:
+        for user in self.users.find():
+            user_id_str = list(user)[1]
+            curr_user_name = user[user_id_str]['username']
+            
+            if curr_user_name == username:
+                return int(user_id_str)
+            
+        return None
+
     def get_user_time_dict(self, user_id: int) -> Dict | None:
         user: Cursor | None = self.get_user(user_id)
 
@@ -77,6 +87,22 @@ class DatabaseManager:
         new_user: Dict = {str(user_id): deepcopy(DEFAULT_USER_STATISTICS)}
         
         self.users.insert_one(new_user)
+
+    def update_user_username(self, user_id: int, username: str) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        user_dict_copy: Dict = deepcopy(user_dict)
+        user_dict_copy[str(user_id)].update({"last_update": time()})
+
+        new_user_dict: Dict = {"$set": user_dict_copy}
+
+        new_user_dict["$set"][str(user_id)]["username"] = username
+
+        self.users.update_one(user_dict, new_user_dict)
 
     def update_user_simple_time(self, user_id: int, status_times: Dict[str, int]) -> None:
         if not self.get_user(user_id): self.add_user(user_id)
