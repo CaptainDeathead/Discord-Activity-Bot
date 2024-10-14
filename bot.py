@@ -110,15 +110,6 @@ class Server:
         self.guild: Guild = guild
         self.get_real_activity: callable = get_real_activity
 
-        self.next_sweep: int = self.calculate_sweep() + offset * 60
-
-    def calculate_sweep(self) -> int:
-        return time() + self.SWEEP_INTERVAL * 60
-        #return time() + 0.1 * 60 # <- WARNING: THIS IS DEBUG ONLY! USE THIS FOR REAL: "return time() + self.SWEEP_INTERVAL * 60"
-    
-    def increment_sweep(self) -> None:
-        self.next_sweep += self.calculate_sweep()
-
     def sweep(self) -> Dict[int, Dict]:
         for member in self.guild.members:
             if member.bot: continue
@@ -320,7 +311,7 @@ class SweepManager:
     def kill(self) -> None:
         self.alive = False
 
-        logging.warning(f"[SWEEP MARKED AS DEAD] Please wait until all servers have been processed...  EST. TIME LEFT: {self.servers[-1].next_sweep - time()}s")
+        logging.warning(f"[SWEEP MARKED AS DEAD] Please wait until all servers have been processed...  EST. TIME LEFT: 60s")
 
     def main(self) -> None:
         while self.alive:
@@ -331,16 +322,12 @@ class SweepManager:
                 sleep(10)
                 continue
 
-            self.servers.sort(key=lambda x: x.next_sweep)
-
             for server in self.servers:
-                next_sweep: int = max(0, server.next_sweep - time())
-                
+                next_sweep: int = 60            
                 logging.info(f"[SWEEP THREAD] Sleeping for {next_sweep}s...  (SWEEPING SERVERS {self.servers.index(server)+1}/{len(self.servers)})")
                 sleep(next_sweep)
 
                 server.sweep()
-                server.increment_sweep()
 
         self.stopped = True
 
