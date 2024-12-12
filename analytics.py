@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plot
+import plotly.graph_objects as go
 
+from time import time
 from random import uniform
-
 from typing import Dict, List, Tuple
 
 from database import DatabaseManager
@@ -131,6 +132,46 @@ class GraphManager:
         plot.title(f"{username}'s rich status breakdown")
         plot.savefig(file_name)
         plot.close()
+
+        return file_name
+        # remember to delete the file once sent
+
+    def get_user_rich_time_table(self, user_id: int, username: str) -> str:
+        user_data = self.dbManager.get_user(user_id)
+
+        if user_data is None: return ""
+
+        activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
+        activity_names: List[str] = []
+        activity_times: List[int] = []
+
+        for activity in activities:
+            activity_names.append(activity)
+            activity_times.append(round(sum(activities[activity].values()) / 60, 2))
+
+        if len(activity_names) == 0:
+            return "user_no_status"
+
+        sorted_pairs = sorted(zip(activity_times, activity_names), reverse=True)
+        sorted_activity_times, sorted_activity_names = zip(*sorted_pairs)
+
+        ranks = list(range(1, len(activity_names)+1))
+        names = list(sorted_activity_names)
+        hours = list(sorted_activity_times)
+
+        ranks.append("-")
+        names.append("Total")
+        hours.append(sum(activity_times))
+
+        fig = go.Figure(
+            data=[go.Table(header=dict(values=["Rank", "Name", "Hours"]),
+            cells=dict(values=[ranks, names, hours]))
+        ])
+
+        estimated_height = 400 + max(0, (len(activity_names) - 10) * 30)
+
+        file_name: str = f"{user_id}_rich_times_table.png"
+        fig.write_image(file_name, height=estimated_height)
 
         return file_name
         # remember to delete the file once sent

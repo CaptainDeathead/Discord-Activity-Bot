@@ -241,6 +241,31 @@ class CommandsManager(commands.Cog):
 
         remove(graph_file)
 
+    @app_commands.command(name="rich_status_table", description="Table of time spent on a users rich presence.")
+    async def rich_status_table(self, interaction: Interaction, user: Member | None = None):
+        await interaction.response.defer()
+
+        logging.info("Recieved 'rich_status_table' command...")
+
+        if user == None:
+            user = interaction.user
+        
+        username = user.name
+        user_id = user.id
+
+        table: str = self.graph_manager.get_user_rich_time_table(user_id, username)
+
+        if table == "":
+            await interaction.followup.send(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
+            return
+        elif table == "user_no_status":
+            await interaction.followup.send(f"{username} has no status's recorded.")
+            return
+        else:
+            await interaction.followup.send(file=File(table))
+
+        remove(table)
+
     @app_commands.command(name="server_rich_status", description="Graph of time a server spends on each rich presence.")
     async def rich_server_graph(self, interaction: Interaction):
         await interaction.response.defer()
