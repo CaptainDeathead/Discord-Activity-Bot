@@ -16,13 +16,15 @@ with open("./mongodb_URI.txt", "r") as f:
 
 DEFAULT_USER_STATISTICS: Dict = {
     "last_update": time(),
+    "active_session": 0,
     "simple_time": {
         "online": 0,
         "idle": 0,
         "dnd": 0,
         "offline": 0
     },
-    "rich_presence_time": {}
+    "rich_presence_time": {},
+    "sessions": {}
 }
 
 class DatabaseManager:
@@ -32,6 +34,7 @@ class DatabaseManager:
     Structure:
         - user id
             - last update time
+            - active session id
 
             - simple time
                 - time spent online
@@ -46,7 +49,14 @@ class DatabaseManager:
                     - time spent dnd
                     - time spent offline
 
-    There should also be an option for just the past week, or at least make it possible to know when a piece of data is made.
+            - sessions
+                - session id (user_id followed by (session end - session start))
+                    - activity name
+                    - status
+                    - start time
+                    - end time
+
+    There should also be an option for just the past week, or at least make it possible to know when a piece of data is made (Sessions).
     """
 
     def __init__(self) -> None:
@@ -80,6 +90,17 @@ class DatabaseManager:
         if user is None: return None
 
         return user[str(user_id)]["rich_presence_time"].get(activity_name, {"online": 0, "idle": 0, "dnd": 0, "offline": 0})
+
+    def get_user_sessions(self, user_id: int) -> Dict | None:
+        user: Cursor | None = self.get_user(user_id)
+
+        if user is None: return None
+
+        if "sessions" not in user[str(user_id)]:
+            user[str(user_id)]["sessions"] = {}
+            user[str(user_id)]["active_session"] = 0
+
+        return user[str(user_id)]["sessions"]
 
     def add_user(self, user_id: int) -> None:
         if self.get_user(user_id): return
@@ -143,6 +164,29 @@ class DatabaseManager:
             "dnd": status_times["dnd"],
             "offline": status_times["offline"]
         }
+
+        self.users.update_one(user_dict, new_user_dict)
+
+    def update_user_session(self, user_id: int, activity_name: str) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        active_session_id = user_dict[str(user_id)]["active_session"]
+        user_sessions = user_dict[str(user_id)]["sessions"]
+        active_session = user_sessions["active_session"]
+
+        if active_session["name"] != activity_name:
+            raise Exception("Active session name does not match name being updated!")
+            return
+
+        user_dict_copy: dict = deepcopy(user_dict)
+        user_dict_copy[str(user_id)].update({"last_update": time()})
+
+        new_user_dict: Dict = {"$set", user_dict_copy}
+
+        new_user_dict["$set"][str(user_id)]["sessions"][active_session]["end_time"] = time()
 
         self.users.update_one(user_dict, new_user_dict)
 
