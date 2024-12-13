@@ -251,3 +251,50 @@ class GraphManager:
         plot.close()
 
         return file_name
+
+    def get_server_rich_time_table(self, members: list, server_name: str) -> str:
+        file_name: str = f"{server_name.replace(" ", "_")}_server_rich_table.png"
+
+        activity_names = []
+        activity_times = []
+
+        for user_id in members:
+            user_data = self.dbManager.get_user(user_id)
+
+            if user_data is None: return ""
+
+            activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
+
+            for activity in activities:
+                activity_time = round(sum(activities[activity].values()) / 60, 2)
+                
+                if activity not in activity_names:
+                    activity_names.append(activity)
+                    activity_times.append(activity_time)
+                else:
+                    index = activity_names.index(activity)
+                    activity_times[index] = round(activity_times[index] + activity_time, 2)
+
+        sorted_pairs = sorted(zip(activity_times, activity_names), reverse=True)
+        sorted_activity_times, sorted_activity_names = zip(*sorted_pairs)
+
+        ranks = list(range(1, len(activity_names)+1))
+        names = list(sorted_activity_names)
+        hours = list(sorted_activity_times)
+
+        ranks.append("-")
+        names.append("Total")
+        hours.append(sum(activity_times))
+
+        fig = go.Figure(
+            data=[go.Table(header=dict(values=["Rank", "Name", "Hours"]),
+            cells=dict(values=[ranks, names, hours]))
+        ])
+
+        estimated_height = 400 + max(0, (len(activity_names) - 10) * 30)
+
+        file_name: str = f"{server_name}_rich_times_table.png"
+        fig.write_image(file_name, height=estimated_height)
+
+        return file_name
+        # remember to delete the file once sent

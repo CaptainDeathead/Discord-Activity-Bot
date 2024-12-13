@@ -262,12 +262,12 @@ class CommandsManager(commands.Cog):
             await interaction.followup.send(f"{username} has no status's recorded.")
             return
         else:
-            await interaction.followup.send(file=File(table))
+            await interaction.followup.send("Note: If you are on desktop, click on the image and select `Open in browser` to zoom in.", file=File(table))
 
         remove(table)
 
-    @app_commands.command(name="server_rich_status", description="Graph of time a server spends on each rich presence.")
-    async def rich_server_graph(self, interaction: Interaction):
+    @app_commands.command(name="server_rich_status", description="Graph / table of time a server spends on each rich presence.")
+    async def rich_server_graph(self, interaction: Interaction, table: bool = False):
         await interaction.response.defer()
 
         logging.info(f"Recieved 'server_rich_status' command...")
@@ -286,14 +286,20 @@ class CommandsManager(commands.Cog):
         if member_list == []:
             return await interaction.followup.send("Guild info not found!")
         
-        graph_file = self.graph_manager.get_server_rich_time(member_list, server_name)
+        if table:
+            return_filename = self.graph_manager.get_server_rich_time_table(member_list, server_name)
+        else:
+            return_filename = self.graph_manager.get_server_rich_time(member_list, server_name)
 
-        if graph_file == "":
+        if return_filename == "":
             return await interaction.followup.send("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")
         
-        await interaction.followup.send(file=File(graph_file))
+        if table:
+            await interaction.followup.send("Note: If you are on desktop, click on the image and select `Open in browser` to zoom in.", file=File(return_filename))
+        else:
+            await interaction.followup.send(file=File(return_filename))
 
-        remove(graph_file)
+        remove(return_filename)
 
     @commands.Cog.listener()
     async def on_message(self, message: Message) -> None:
