@@ -140,6 +140,7 @@ class Server:
 
             self.database_manager.update_user_simple_time(member.id, user_simple_time)
             self.database_manager.update_user_username(member.id, member.name)
+            self.database_manager.set_user_last_update() # Very important
 
 class CommandsManager(commands.Cog):
     """
@@ -354,11 +355,11 @@ class SweepManager:
                 continue
 
             for server in self.servers:
+                server.sweep()
                 next_sweep: int = 60            
+
                 logging.info(f"[SWEEP THREAD] Sleeping for {next_sweep}s...  (SWEEPING SERVERS {self.servers.index(server)+1}/{len(self.servers)})")
                 sleep(next_sweep)
-
-                server.sweep()
 
         self.stopped = True
 

@@ -113,14 +113,11 @@ class DatabaseManager:
         if not self.get_user(user_id): self.add_user(user_id)
 
         user: Cursor = self.get_user(user_id)
-
         user_dict: Dict = {str(user_id): user[str(user_id)]}
 
         user_dict_copy: Dict = deepcopy(user_dict)
-        user_dict_copy[str(user_id)].update({"last_update": time()})
 
         new_user_dict: Dict = {"$set": user_dict_copy}
-
         new_user_dict["$set"][str(user_id)]["username"] = username
 
         self.users.update_one(user_dict, new_user_dict)
@@ -129,14 +126,11 @@ class DatabaseManager:
         if not self.get_user(user_id): self.add_user(user_id)
 
         user: Cursor = self.get_user(user_id)
-
         user_dict: Dict = {str(user_id): user[str(user_id)]}
 
         user_dict_copy: Dict = deepcopy(user_dict)
-        user_dict_copy[str(user_id)].update({"last_update": time()})
 
         new_user_dict: Dict = {"$set": user_dict_copy}
-
         new_user_dict["$set"][str(user_id)]["simple_time"] = {
             "online": status_times["online"],
             "idle": status_times["idle"],
@@ -150,20 +144,31 @@ class DatabaseManager:
         if not self.get_user(user_id): self.add_user(user_id)
 
         user: Cursor = self.get_user(user_id)
-
         user_dict: Dict = {str(user_id): user[str(user_id)]}
         
         user_dict_copy: Dict = deepcopy(user_dict)
         user_dict_copy[str(user_id)].update({"last_update": time()})
 
         new_user_dict: Dict = {"$set": user_dict_copy}
-
         new_user_dict["$set"][str(user_id)]["rich_presence_time"][app_name] = {
             "online": status_times["online"],
             "idle": status_times["idle"],
             "dnd": status_times["dnd"],
             "offline": status_times["offline"]
         }
+
+        self.users.update_one(user_dict, new_user_dict)
+
+    def set_user_last_update(self, user_id: int) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        user_dict_copy = deepcopy(user_dict)
+        user_dict_copy[str(user_id)].update({"last_update": time()})
+
+        new_user_dict = {"$set", user_dict_copy}
 
         self.users.update_one(user_dict, new_user_dict)
 
@@ -178,11 +183,9 @@ class DatabaseManager:
         active_session_id = int(str(user_id) + str(start_time))
 
         user_dict_copy: dict = deepcopy(user_dict)
-        user_dict_copy[str(user_id)].update({"last_update": time()})
         user_dict_copy[str(user_id)].update({"active_session": active_session_id})
 
         new_user_dict: Dict = {"$set", user_dict_copy}
-
         new_user_dict["$set"][str(user_id)]["sessions"][active_session_id] = {
             'activity_name': activity_name,
             'status': status,
@@ -207,10 +210,8 @@ class DatabaseManager:
             return
 
         user_dict_copy: dict = deepcopy(user_dict)
-        user_dict_copy[str(user_id)].update({"last_update": time()})
-
+        
         new_user_dict: Dict = {"$set", user_dict_copy}
-
         new_user_dict["$set"][str(user_id)]["sessions"][active_session]["end_time"] = time()
 
         self.users.update_one(user_dict, new_user_dict)
