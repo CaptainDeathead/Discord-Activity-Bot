@@ -123,6 +123,8 @@ class Server:
 
             if time() - user_data["last_update"] > 60 * 20: # if the user has not been updated in the last 20 mins, do not update in case of bot crash
                 user_data["last_update"] = time()
+            
+            used_active_sessions = []
 
             for activity in member.activities:
                 if activity.name is None: continue
@@ -136,11 +138,22 @@ class Server:
 
                 self.database_manager.update_user_rich_presence_time(member.id, real_activity_name, activity_time)
 
+                # Session updating
+                ret_status, session_id = self.database_manager.update_user_session(member.id, real_activity_name, member.status.name)
+                used_active_sessions.append(session_id)
+
+                if ret_status == False: # Activity not present
+                    self.database_manager.new_user_session(member.id, real_activity_name, member.status.name)
+
+            for session_id in self.database_manager.get_active_sessions(member.id):
+                if session_id not in used_active_sessions:
+                    self.database_manager.remove_active_session_id(member.id, session_id)
+
             user_simple_time[member.status.name] += (time() - user_data["last_update"]) / 60
 
             self.database_manager.update_user_simple_time(member.id, user_simple_time)
             self.database_manager.update_user_username(member.id, member.name)
-            self.database_manager.set_user_last_update() # Very important
+            self.database_manager.set_user_last_update(member.id) # Very important
 
 class CommandsManager(commands.Cog):
     """

@@ -16,7 +16,7 @@ with open("./mongodb_URI.txt", "r") as f:
 
 DEFAULT_USER_STATISTICS: Dict = {
     "last_update": time(),
-    "active_session": 0,
+    "active_sessions": [],
     "simple_time": {
         "online": 0,
         "idle": 0,
@@ -34,7 +34,7 @@ class DatabaseManager:
     Structure:
         - user id
             - last update time
-            - active session id
+            - active session's id's
 
             - simple time
                 - time spent online
@@ -53,6 +53,9 @@ class DatabaseManager:
                 - session id (user_id followed by session start time)
                     - activity name
                     - status
+                        - online
+                        - idle
+                        - dnd
                     - start time
                     - end time
 
@@ -93,14 +96,22 @@ class DatabaseManager:
 
     def get_user_sessions(self, user_id: int) -> Dict | None:
         user: Cursor | None = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
 
         if user is None: return None
 
-        if "sessions" not in user[str(user_id)]:
-            user[str(user_id)]["sessions"] = {}
-            user[str(user_id)]["active_session"] = 0
+        if "sessions" not in user_dict[str(user_id)] or "active_sessions" not in user_dict[str(user_id)]:
+            self.add_sessions_field(user_id)
 
-        return user[str(user_id)]["sessions"]
+        return user_dict[str(user_id)]["sessions"]
+
+    def get_active_sessions(self, user_id: int) -> list[str]:
+        user: Cursor | None = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        if user is None: return None
+
+        return user_dict[str(user_id)]["active_sessions"]
 
     def add_user(self, user_id: int) -> None:
         if self.get_user(user_id): return
@@ -108,6 +119,20 @@ class DatabaseManager:
         new_user: Dict = {str(user_id): deepcopy(DEFAULT_USER_STATISTICS)}
         
         self.users.insert_one(new_user)
+
+    def add_sessions_field(self, user_id: int) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        user_dict_copy: Dict = deepcopy(user_dict)
+
+        new_user_dict: Dict = {"$set": user_dict_copy}
+        new_user_dict["$set"][str(user_id)]["active_sessions"] = []
+        new_user_dict["$set"][str(user_id)]["sessions"] = {}
+
+        self.users.update_one(user_dict, new_user_dict)
 
     def update_user_username(self, user_id: int, username: str) -> None:
         if not self.get_user(user_id): self.add_user(user_id)
@@ -147,7 +172,6 @@ class DatabaseManager:
         user_dict: Dict = {str(user_id): user[str(user_id)]}
         
         user_dict_copy: Dict = deepcopy(user_dict)
-        user_dict_copy[str(user_id)].update({"last_update": time()})
 
         new_user_dict: Dict = {"$set": user_dict_copy}
         new_user_dict["$set"][str(user_id)]["rich_presence_time"][app_name] = {
@@ -168,11 +192,11 @@ class DatabaseManager:
         user_dict_copy = deepcopy(user_dict)
         user_dict_copy[str(user_id)].update({"last_update": time()})
 
-        new_user_dict = {"$set", user_dict_copy}
+        new_user_dict = {"$set": user_dict_copy}
 
         self.users.update_one(user_dict, new_user_dict)
 
-    def new_user_session(self, user_id: int, activity_name: str, status: str) -> None:
+    def new_user_session(self, user_id: int, activity_name: str, status: str) -> str:
         if not self.get_user(user_id): self.add_user(user_id)
 
         user: Cursor = self.get_user(user_id)
@@ -180,41 +204,89 @@ class DatabaseManager:
         
         start_time = time()
 
-        active_session_id = int(str(user_id) + str(start_time))
+        active_session_id = str(user_id) + str(int(start_time))
+
+        if "sessions" not in user_dict[str(user_id)] or "active_sessions" not in user_dict[str(user_id)]:
+            self.add_sessions_field(user_id)
 
         user_dict_copy: dict = deepcopy(user_dict)
-        user_dict_copy[str(user_id)].update({"active_session": active_session_id})
 
-        new_user_dict: Dict = {"$set", user_dict_copy}
+        active_sessions = user_dict_copy[str(user_id)]["active_sessions"]
+        active_sessions.append(active_session_id)
+
+        user_dict_copy[str(user_id)].update({"active_sessions": active_sessions})
+
+        new_user_dict: Dict = {"$set": user_dict_copy}
         new_user_dict["$set"][str(user_id)]["sessions"][active_session_id] = {
-            'activity_name': activity_name,
-            'status': status,
+            'name': activity_name,
+            'status': {
+                'online': 0,
+                'idle': 0,
+                'dnd': 0
+            },
             'start_time': start_time,
             'end_time': start_time
         }
 
         self.users.update_one(user_dict, new_user_dict)
+        self.update_user_session(user_id, activity_name, status)
 
-    def update_user_session(self, user_id: int, activity_name: str) -> None:
+        return active_session_id
+
+    def remove_active_session_id(self, user_id: int, session_id: str) -> None:
         if not self.get_user(user_id): self.add_user(user_id)
 
         user: Cursor = self.get_user(user_id)
         user_dict: Dict = {str(user_id): user[str(user_id)]}
 
-        active_session_id = user_dict[str(user_id)]["active_session"]
-        user_sessions = user_dict[str(user_id)]["sessions"]
-        active_session = user_sessions["active_session"]
+        active_sessions = self.get_active_sessions(user_id)
+        active_sessions.remove(session_id)
 
-        if active_session["name"] != activity_name:
-            raise Exception("Active session name does not match name being updated!")
-            return
+        user_dict_copy = deepcopy(user_dict)
+
+        new_user_dict: Dict = {"$set": user_dict_copy}
+        new_user_dict["$set"][str(user_id)]["active_sessions"] = active_sessions
+
+    def update_user_session(self, user_id: int, activity_name: str, status: str) -> tuple[bool, str]:
+        # Returns:
+        #  - True -> status is good
+        #  - False -> status is not good
+
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        if "sessions" not in user_dict[str(user_id)] or "active_sessions" not in user_dict[str(user_id)]:
+            self.add_sessions_field(user_id)
+
+        active_sessions = user[str(user_id)]["active_sessions"]
+        user_sessions = user_dict[str(user_id)]["sessions"]
+
+        active_session_id = 0
+
+        for session_id in active_sessions:
+            if session_id == 0: continue
+
+            session = user_sessions[session_id]
+
+            if session["name"] == activity_name:
+                active_session_id = session_id
+                break
+            
+        if active_session_id == 0: return False, 0
 
         user_dict_copy: dict = deepcopy(user_dict)
+
+        last_update = user_dict_copy[str(user_id)]["last_update"]
         
-        new_user_dict: Dict = {"$set", user_dict_copy}
-        new_user_dict["$set"][str(user_id)]["sessions"][active_session]["end_time"] = time()
+        new_user_dict: Dict = {"$set": user_dict_copy}
+        new_user_dict["$set"][str(user_id)]["sessions"][active_session_id]["end_time"] = time()
+        new_user_dict["$set"][str(user_id)]["sessions"][active_session_id]["status"][status] += (time() - last_update) / 60
 
         self.users.update_one(user_dict, new_user_dict)
+
+        return True, active_session_id
 
     def delete_database(self) -> None:
         """
