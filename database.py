@@ -50,7 +50,7 @@ class DatabaseManager:
                     - time spent offline
 
             - sessions
-                - session id (user_id followed by (session end - session start))
+                - session id (user_id followed by session start time)
                     - activity name
                     - status
                     - start time
@@ -163,6 +163,31 @@ class DatabaseManager:
             "idle": status_times["idle"],
             "dnd": status_times["dnd"],
             "offline": status_times["offline"]
+        }
+
+        self.users.update_one(user_dict, new_user_dict)
+
+    def new_user_session(self, user_id: int, activity_name: str, status: str) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+        
+        start_time = time()
+
+        active_session_id = int(str(user_id) + str(start_time))
+
+        user_dict_copy: dict = deepcopy(user_dict)
+        user_dict_copy[str(user_id)].update({"last_update": time()})
+        user_dict_copy[str(user_id)].update({"active_session": active_session_id})
+
+        new_user_dict: Dict = {"$set", user_dict_copy}
+
+        new_user_dict["$set"][str(user_id)]["sessions"][active_session_id] = {
+            'activity_name': activity_name,
+            'status': status,
+            'start_time': start_time,
+            'end_time': start_time
         }
 
         self.users.update_one(user_dict, new_user_dict)
