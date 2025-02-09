@@ -16,6 +16,7 @@ with open("./mongodb_URI.txt", "r") as f:
 
 DEFAULT_USER_STATISTICS: Dict = {
     "last_update": time(),
+    "last_online": time(),
     "active_sessions": [],
     "simple_time": {
         "online": 0,
@@ -34,6 +35,7 @@ class DatabaseManager:
     Structure:
         - user id
             - last update time
+            - last online time
             - active session's id's
 
             - simple time
@@ -110,6 +112,8 @@ class DatabaseManager:
         user_dict: Dict = {str(user_id): user[str(user_id)]}
 
         if user is None: return None
+        if "active_sessions" not in user:
+            self.add_sessions_field(user_id)
 
         return user_dict[str(user_id)]["active_sessions"]
 
@@ -183,11 +187,49 @@ class DatabaseManager:
 
         self.users.update_one(user_dict, new_user_dict)
 
+    def get_user_last_online(self, user_id: int) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        if "last_online" not in user_dict[str(user_id)]:
+            self.set_user_last_online(user_id, time())
+
+            user: Cursor = self.get_user(user_id)
+            user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        return user_dict[str(user_id)]["last_online"]
+
+    def set_user_last_online(self, user_id: int, online_time: float) -> None:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        user_dict_copy = deepcopy(user_dict)
+        user_dict_copy[str(user_id)].update({"last_online": online_time})
+
+        new_user_dict = {"$set": user_dict_copy}
+
+        self.users.update_one(user_dict, new_user_dict)
+
+    def get_user_last_update(self, user_id: int) -> float:
+        if not self.get_user(user_id): self.add_user(user_id)
+
+        user: Cursor = self.get_user(user_id)
+        user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        return user_dict[str(user_id)]["last_update"]
+
     def set_user_last_update(self, user_id: int) -> None:
         if not self.get_user(user_id): self.add_user(user_id)
 
         user: Cursor = self.get_user(user_id)
         user_dict: Dict = {str(user_id): user[str(user_id)]}
+
+        if "last_online" not in user_dict[str(user_id)]:
+            self.set_user_last_online(user_id, time())
 
         user_dict_copy = deepcopy(user_dict)
         user_dict_copy[str(user_id)].update({"last_update": time()})
@@ -240,7 +282,8 @@ class DatabaseManager:
         user_dict: Dict = {str(user_id): user[str(user_id)]}
 
         active_sessions = self.get_active_sessions(user_id)
-        active_sessions.remove(session_id)
+        if session_id in active_sessions:
+            active_sessions.remove(session_id)
 
         user_dict_copy = deepcopy(user_dict)
 

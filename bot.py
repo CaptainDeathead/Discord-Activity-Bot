@@ -8,6 +8,8 @@ from os import remove, execv
 from sys import executable, argv
 from threading import Thread
 from time import time, sleep
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from database import DatabaseManager
 from analytics import GraphManager
@@ -110,50 +112,59 @@ class Server:
         self.guild: Guild = guild
         self.get_real_activity: callable = get_real_activity
 
+    def process_member(self, member: Member) -> None:
+        self.database_manager.add_user(member.id)
+
+        user_data: Dict = self.database_manager.get_user_time_dict(member.id)
+        user_simple_time: Dict[str, float] = user_data["simple_time"]
+
+        if time() - user_data["last_update"] > 60 * 20: # if the user has not been updated in the last 20 mins, do not update in case of bot crash
+            user_data["last_update"] = time()
+        
+        used_active_sessions = []
+
+        for activity in member.activities:
+            if activity.name is None: continue
+
+            real_activity_name: str = self.get_real_activity(activity.name)
+
+            if real_activity_name == "": continue
+
+            activity_time: Dict[str, float] = self.database_manager.get_user_rich_time_dict(member.id, real_activity_name)
+            activity_time[member.status.name] += (time() - user_data["last_update"]) / 60
+
+            self.database_manager.update_user_rich_presence_time(member.id, real_activity_name, activity_time)
+
+            # Session updating
+            ret_status, session_id = self.database_manager.update_user_session(member.id, real_activity_name, member.status.name)
+            used_active_sessions.append(session_id)
+
+            if ret_status == False: # Activity not present
+                self.database_manager.new_user_session(member.id, real_activity_name, member.status.name)
+
+        for session_id in self.database_manager.get_active_sessions(member.id):
+            if session_id not in used_active_sessions:
+                self.database_manager.remove_active_session_id(member.id, session_id)
+
+        user_simple_time[member.status.name] += (time() - user_data["last_update"]) / 60
+
+        self.database_manager.update_user_simple_time(member.id, user_simple_time)
+        self.database_manager.update_user_username(member.id, member.name)
+        self.database_manager.set_user_last_update(member.id) # Very important
+
+
     def sweep(self) -> Dict[int, Dict]:
+        threads = []
+
         for member in self.guild.members:
             if member.bot: continue
-
             if DEBUG and ("captaindeathead" not in member.name): continue
 
-            self.database_manager.add_user(member.id)
+            threads.append(Thread(target=lambda member=member: self.process_member(member)))
+            threads[-1].start()
 
-            user_data: Dict = self.database_manager.get_user_time_dict(member.id)
-            user_simple_time: Dict[str, float] = user_data["simple_time"]
-
-            if time() - user_data["last_update"] > 60 * 20: # if the user has not been updated in the last 20 mins, do not update in case of bot crash
-                user_data["last_update"] = time()
-            
-            used_active_sessions = []
-
-            for activity in member.activities:
-                if activity.name is None: continue
-
-                real_activity_name: str = self.get_real_activity(activity.name)
-
-                if real_activity_name == "": continue
-
-                activity_time: Dict[str, float] = self.database_manager.get_user_rich_time_dict(member.id, real_activity_name)
-                activity_time[member.status.name] += (time() - user_data["last_update"]) / 60
-
-                self.database_manager.update_user_rich_presence_time(member.id, real_activity_name, activity_time)
-
-                # Session updating
-                ret_status, session_id = self.database_manager.update_user_session(member.id, real_activity_name, member.status.name)
-                used_active_sessions.append(session_id)
-
-                if ret_status == False: # Activity not present
-                    self.database_manager.new_user_session(member.id, real_activity_name, member.status.name)
-
-            for session_id in self.database_manager.get_active_sessions(member.id):
-                if session_id not in used_active_sessions:
-                    self.database_manager.remove_active_session_id(member.id, session_id)
-
-            user_simple_time[member.status.name] += (time() - user_data["last_update"]) / 60
-
-            self.database_manager.update_user_simple_time(member.id, user_simple_time)
-            self.database_manager.update_user_username(member.id, member.name)
-            self.database_manager.set_user_last_update(member.id) # Very important
+        for thread in threads:
+            thread.join()
 
 class CommandsManager(commands.Cog):
     """
@@ -162,8 +173,48 @@ class CommandsManager(commands.Cog):
     
     def __init__(self, bot: ActivityBot, graph_manager: GraphManager) -> None:
         self.bot: ActivityBot = bot
+        
+        self.blocked_users = []
 
         self.graph_manager: GraphManager = graph_manager
+
+    def format_time_since(self, old_time_since_epoch: int) -> str:
+        old = datetime.fromtimestamp(old_time_since_epoch)
+        now = datetime.now()
+
+        diff = relativedelta(now, old)
+        
+        parts = [
+            (diff.years, "year"),
+            (diff.months, "month"),
+            (diff.days, "day"),
+            (diff.hours, "hour"),
+            (diff.minutes, "minute"),
+        ]
+
+        result = []
+        found_nonzero = False
+
+        for value, name in parts:
+            if value > 0 or found_nonzero:
+                found_nonzero = True
+                result.append(f"{value} {name}{'s' if value != 1 else ''}")
+
+        #return ", ".join(result) + " ago" if result else "Just now"
+        return f"<t:{int(old_time_since_epoch)}:R>"
+
+    @commands.Cog.listener("on_presence_update")
+    async def on_presence_update(self, before: Member, after: Member) -> None:
+        if before.status == after.status:
+            return
+
+        if not (before.status is Status.online and after.status is Status.offline):
+            return
+        
+        username = after.name
+        user_id = after.id
+
+        self.bot.database_manager.set_user_last_online(user_id, time())
 
     @app_commands.command(name="bot_status", description="Test bot is responding.")
     async def ping(self, interaction: Interaction):
@@ -177,6 +228,30 @@ class CommandsManager(commands.Cog):
 
         return await interaction.response.send_message("Type '`/simple_status`' to view your basic Discord status. Provide another user to view them instead\nType '`/rich_status`' for more in-depth information regarding your activities. Provide another user to view them instead.\n ~ To view more information about each presence provide text in the '`presence`' argument. This will search for the closest presence to that query and show information about it.")
 
+    @app_commands.command(name="last_online", description="Get the last time a user was online")
+    async def last_online(self, interaction: Interaction, user: Member | None = None):
+        await interaction.response.defer()
+
+        logging.info("Recieved 'last_online' command...")
+
+        if user is None:
+            return await interaction.followup.send("Please supply a user in the 'user' argument!")
+
+        for member in interaction.guild.members:
+            if member.id == user.id:
+                user = member
+
+        if user.status != Status.offline:
+            return await interaction.followup.send(f"{user.name} is currently online")
+
+        username = user.name
+        user_id = user.id
+
+        if user_id in self.blocked_users:
+            return await interaction.followup.send(f"{username} is banned from Activity Bot. If you feel this is a mistake, please DM @captaindeathead for assistance.")
+
+        return await interaction.followup.send(f"{username} was last online {self.format_time_since(self.bot.database_manager.get_user_last_online(user_id))}")
+
     @app_commands.command(name="simple_status", description="Graph of time spent on each basic status")
     async def simple_status_graph(self, interaction: Interaction, user: Member | None = None):
         await interaction.response.defer()
@@ -188,6 +263,10 @@ class CommandsManager(commands.Cog):
         
         username = user.name
         user_id = user.id
+        
+        if user_id in self.blocked_users:
+            await interaction.followup.send(f"{username} is banned from Activity Bot. If you feel this is a mistake, please DM @captaindeathead for assistance.")
+            return
 
         graph_file: str = self.graph_manager.get_user_simple_time(user_id, username)
 
@@ -239,6 +318,10 @@ class CommandsManager(commands.Cog):
         username = user.name
         user_id = user.id
 
+        if user_id in self.blocked_users:
+            await interaction.followup.send(f"{username} is banned from Activity Bot. If you feel this is a mistake, please DM @captaindeathead for assistance.")
+            return
+
         if isinstance(presence, str):
             graph_file: str = self.graph_manager.get_user_rich_time_specific(user_id, username, presence)
         else:
@@ -266,6 +349,10 @@ class CommandsManager(commands.Cog):
         
         username = user.name
         user_id = user.id
+
+        if user_id in self.blocked_users:
+            await interaction.followup.send(f"{username} is banned from Activity Bot. If you feel this is a mistake, please DM @captaindeathead for assistance.")
+            return
 
         table: str = self.graph_manager.get_user_rich_time_table(user_id, username)
 
@@ -369,7 +456,7 @@ class SweepManager:
 
             for server in self.servers:
                 server.sweep()
-                next_sweep: int = 60            
+                next_sweep: int = 5
 
                 logging.info(f"[SWEEP THREAD] Sleeping for {next_sweep}s...  (SWEEPING SERVERS {self.servers.index(server)+1}/{len(self.servers)})")
                 sleep(next_sweep)
