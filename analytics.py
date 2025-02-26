@@ -104,7 +104,7 @@ class GraphManager:
 
         plot.pie(time_list, labels=labels, colors=colors, autopct=lambda percent: self.format_time(percent, time_list))
         plot.title(f"{username}'s basic status breakdown")
-        plot.savefig(file_name)
+        plot.savefig(file_name, facecolor='none')
         plot.close()
 
         return file_name
@@ -130,7 +130,7 @@ class GraphManager:
         plot.pie(activity_times, labels=self.remove_minority_items(activity_names, activity_times),
                  colors=colors, autopct=lambda percent: self.format_time(percent, activity_times))
         plot.title(f"{username}'s rich status breakdown")
-        plot.savefig(file_name)
+        plot.savefig(file_name, facecolor='none')
         plot.close()
 
         return file_name
@@ -196,7 +196,7 @@ class GraphManager:
 
         plot.pie(time_list, labels=labels, colors=colors, autopct=lambda percent: self.format_time(percent, time_list))
         plot.title(f"{username}'s rich status for '{best_activity}' breakdown")
-        plot.savefig(file_name)
+        plot.savefig(file_name, facecolor='none')
         plot.close()
 
         return file_name
@@ -220,7 +220,7 @@ class GraphManager:
         plot.pie(server_statuses.values(), labels=self.remove_minority_keys(server_statuses),
                  colors=colors, autopct=lambda percent: self.format_time(percent, server_statuses.values()))
         plot.title(f"{server_name}'s simple status breakdown")
-        plot.savefig(file_name)
+        plot.savefig(file_name, facecolor='none')
         plot.close()
 
         return file_name
@@ -247,7 +247,7 @@ class GraphManager:
         plot.pie(server_activities.values(), labels=self.remove_minority_keys(server_activities),
                  colors=colors, autopct=lambda percent: self.format_time(percent, server_activities.values()))
         plot.title(f"{server_name}'s rich status breakdown")
-        plot.savefig(file_name)
+        plot.savefig(file_name, facecolor='none')
         plot.close()
 
         return file_name
