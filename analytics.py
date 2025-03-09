@@ -31,6 +31,7 @@ class GraphManager:
 
     def __init__(self, database_manager: DatabaseManager) -> None:
         self.dbManager: DatabaseManager = database_manager
+        plot.rcParams['text.color'] = 'white'
 
     def _random_color(self) -> Tuple[int, int, int]:
         return (uniform(0, 1), uniform(0, 1), uniform(0, 1))
