@@ -206,7 +206,7 @@ class GraphManager:
     def get_server_simple_time(self, members: list, server_name: str) -> str:
         server_statuses: Dict[str, int] = {"Online": 0, "Idle": 0, "Do Not Disturb": 0, "Offline": 0}
         colors: Tuple[Tuple[int, int, int]] = (self.COLORS["green"], self.COLORS["yellow"], self.COLORS["red"], self.COLORS["grey"])
-        file_name: str = f"{server_name.replace(" ", "_")}_server_simple.png"
+        file_name: str = f'{server_name.replace(" ", "_")}_server_simple.png'
 
         for user_id in members:
             user_time_data = self.dbManager.get_user_time_dict(user_id)
@@ -229,7 +229,7 @@ class GraphManager:
     def get_server_rich_time(self, members: list, server_name: str) -> str:
         server_activities: Dict[str, int] = {}
         colors: List[Tuple[int, int, int]] = []
-        file_name: str = f"{server_name.replace(" ", "_")}_server_rich.png"
+        file_name: str = f'{server_name.replace(" ", "_")}_server_rich.png'
 
         for user_id in members:
             user_data = self.dbManager.get_user(user_id)
@@ -254,7 +254,7 @@ class GraphManager:
         return file_name
 
     def get_server_rich_time_table(self, members: list, server_name: str) -> str:
-        file_name: str = f"{server_name.replace(" ", "_")}_server_rich_table.png"
+        file_name: str = f'{server_name.replace(" ", "_")}_server_rich_table.png'
 
         activity_names = []
         activity_times = []
