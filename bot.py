@@ -81,14 +81,14 @@ class ActivityBot(commands.Bot):
                 return token_raw.read()
 
         except FileNotFoundError:
-            print("Error while loading token!\nPlease ensure the path to the token in the config file is correct.")
+            logging.error("Error while loading token!\nPlease ensure the path to the token in the config file is correct.")
             exit()
 
         except UnicodeError:
-            print("Error while loading token!\nPlease ensure the token file is 'utf-8' encoding and has no special characters.")
+            logging.error("Error while loading token!\nPlease ensure the token file is 'utf-8' encoding and has no special characters.")
 
         except Exception as e:
-            print(f"Error while loading token!\nError: {str(e)}!")
+            logging.error(f"Error while loading token!\nError: {str(e)}!")
 
     def _load_cfg(self, path: str) -> Dict:
         with open(path, "r") as cfg:
@@ -137,10 +137,11 @@ class Server:
 
             # Session updating
             ret_status, session_id = self.database_manager.update_user_session(member.id, real_activity_name, member.status.name)
-            used_active_sessions.append(session_id)
 
-            if ret_status == False: # Activity not present
-                self.database_manager.new_user_session(member.id, real_activity_name, member.status.name)
+            if ret_status == False or session_id == "": # Activity not present
+                session_id = self.database_manager.new_user_session(member.id, real_activity_name, member.status.name)
+
+            used_active_sessions.append(session_id)
 
         for session_id in self.database_manager.get_active_sessions(member.id):
             if session_id not in used_active_sessions:

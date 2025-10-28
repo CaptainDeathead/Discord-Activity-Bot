@@ -112,7 +112,7 @@ class DatabaseManager:
         user_dict: Dict = {str(user_id): user[str(user_id)]}
 
         if user is None: return None
-        if "active_sessions" not in user:
+        if "active_sessions" not in user_dict[str(user_id)]:
             self.add_sessions_field(user_id)
 
         return user_dict[str(user_id)]["active_sessions"]
@@ -246,7 +246,9 @@ class DatabaseManager:
         
         start_time = time()
 
-        active_session_id = str(user_id) + str(int(start_time))
+        active_session_id = str(user_id) + str(start_time)
+
+        #print(f"New user session: {user_id=}, {activity_name=}, {status=}")
 
         if "sessions" not in user_dict[str(user_id)] or "active_sessions" not in user_dict[str(user_id)]:
             self.add_sessions_field(user_id)
@@ -258,8 +260,8 @@ class DatabaseManager:
 
         user_dict_copy[str(user_id)].update({"active_sessions": active_sessions})
 
-        new_user_dict: Dict = {"$set": user_dict_copy}
-        new_user_dict["$set"][str(user_id)]["sessions"][active_session_id] = {
+        new_user_dict: Dict = user_dict_copy
+        new_user_dict[str(user_id)]["sessions"][active_session_id] = {
             'name': activity_name,
             'status': {
                 'online': 0,
@@ -269,6 +271,7 @@ class DatabaseManager:
             'start_time': start_time,
             'end_time': start_time
         }
+        new_user_dict: Dict = {"$set": new_user_dict}
 
         self.users.update_one(user_dict, new_user_dict)
         self.update_user_session(user_id, activity_name, status)
@@ -287,13 +290,18 @@ class DatabaseManager:
 
         user_dict_copy = deepcopy(user_dict)
 
+        new_user_dict: Dict = user_dict_copy
+        new_user_dict[str(user_id)]["active_sessions"] = active_sessions
         new_user_dict: Dict = {"$set": user_dict_copy}
-        new_user_dict["$set"][str(user_id)]["active_sessions"] = active_sessions
+
+        self.users.update_one(user_dict, new_user_dict)
 
     def update_user_session(self, user_id: int, activity_name: str, status: str) -> tuple[bool, str]:
         # Returns:
         #  - True -> status is good
         #  - False -> status is not good
+
+        #print(f"Updating user session for: {user_id=}, {activity_name=}, {status=}")
 
         if not self.get_user(user_id): self.add_user(user_id)
 
@@ -306,28 +314,32 @@ class DatabaseManager:
         active_sessions = user[str(user_id)]["active_sessions"]
         user_sessions = user_dict[str(user_id)]["sessions"]
 
-        active_session_id = 0
+        active_session_id = ""
 
         for session_id in active_sessions:
-            if session_id == 0: continue
-
             session = user_sessions[session_id]
 
             if session["name"] == activity_name:
                 active_session_id = session_id
                 break
             
-        if active_session_id == 0: return False, 0
+        if active_session_id == "":
+            return False, ""
 
         user_dict_copy: dict = deepcopy(user_dict)
 
         last_update = user_dict_copy[str(user_id)]["last_update"]
+
+        new_user_dict = user_dict_copy
         
+        new_user_dict[str(user_id)]["sessions"][active_session_id]["end_time"] = time()
+        new_user_dict[str(user_id)]["sessions"][active_session_id]["status"][status] += (time() - last_update) / 60
+
         new_user_dict: Dict = {"$set": user_dict_copy}
-        new_user_dict["$set"][str(user_id)]["sessions"][active_session_id]["end_time"] = time()
-        new_user_dict["$set"][str(user_id)]["sessions"][active_session_id]["status"][status] += (time() - last_update) / 60
 
         self.users.update_one(user_dict, new_user_dict)
+
+        #print(f"Updating user session for: {user_id=}, {activity_name=}, {status=} -- Success!")
 
         return True, active_session_id
 
