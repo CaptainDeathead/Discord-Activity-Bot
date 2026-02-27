@@ -89,6 +89,32 @@ class GraphManager:
 
         return f"{percent:.1f}%\n({hours}h {mins}m)"
 
+    def filter_rich_time_selector(self, user_id: int, user_data: Dict, time_filter: str, filter_activity_name: str = "") -> Dict[str, int]:
+        min_start_time = time()
+        if time_filter == "day":
+            min_start_time -= 60*60*24
+        elif time_filter == "week":
+            min_start_time -= 60*60*24*7
+        elif time_filter == "month":
+            min_start_time -= 60*60*24*30 # TODO: NOT EVERY MONTH IS 30 DAYS
+        else:
+            raise Exception(f"Time filter: {time_filter=} is not valid! Should be [day, week, month].")
+
+        adjusted_activities = {}
+
+        for session in user_data[str(user_id)]["sessions"].values():
+            if session["name"] == filter_activity_name or filter_activity_name == "":
+                if session["end_time"] < min_start_time: continue
+
+                if session["name"] in adjusted_activities:
+                    adjusted_activities[session["name"]]["online"] += session["status"]["online"]
+                    adjusted_activities[session["name"]]["idle"] += session["status"]["idle"]
+                    adjusted_activities[session["name"]]["dnd"] += session["status"]["dnd"]
+                else:
+                    adjusted_activities[session["name"]] = session["status"]
+
+        return adjusted_activities
+
     def get_user_simple_time(self, user_id: int, username: str) -> str:
         user_data = self.dbManager.get_user(user_id)
 
@@ -111,12 +137,16 @@ class GraphManager:
         return file_name
         # remember to delete the file once sent
 
-    def get_user_rich_time(self, user_id: int, username: str) -> str:
+    def get_user_rich_time(self, user_id: int, username: str, time_filter: str) -> str:
         user_data = self.dbManager.get_user(user_id)
 
         if user_data is None: return ""
 
         activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
+
+        if time_filter != "":
+            activities = self.filter_rich_time_selector(user_id, user_data, time_filter)
+
         activity_names: List[str] = []
         activity_times: List[int] = []
         colors: List[Tuple[int, int, int]] = []
@@ -126,11 +156,16 @@ class GraphManager:
             activity_times.append(sum(activities[activity].values()))
             colors.append(self._random_color())
 
+        display_time_filter = time_filter
+
+        if display_time_filter == "":
+            display_time_filter = "all time"
+
         file_name: str = f"{user_id}_rich_times.png"
 
         plot.pie(activity_times, labels=self.remove_minority_items(activity_names, activity_times),
                  colors=colors, autopct=lambda percent: self.format_time(percent, activity_times))
-        plot.title(f"{username}'s rich status breakdown")
+        plot.title(f"{username}'s rich status breakdown ({display_time_filter})")
         plot.savefig(file_name, facecolor='none')
         plot.close()
 

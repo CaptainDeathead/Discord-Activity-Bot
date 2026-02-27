@@ -308,7 +308,13 @@ class CommandsManager(commands.Cog):
         remove(graph_file)
 
     @app_commands.command(name="rich_status", description="Graph of time spent on a users rich presence.")
-    async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None):
+    @app_commands.describe(user="The user to view", presence="To search for a specific activity (optional)", time_filter="Use data from only the last: day / week / month (optional)")
+    @app_commands.choices(time_filter=[
+        app_commands.Choice(name="Day", value="day"),
+        app_commands.Choice(name="Week", value="week"),
+        app_commands.Choice(name="Month", value="month"),
+    ])
+    async def rich_status_graph(self, interaction: Interaction, user: Member | None = None, presence: str | None = None, time_filter: app_commands.Choice[str] = ""):
         await interaction.response.defer()
 
         logging.info("Recieved 'rich_status' command...")
@@ -319,14 +325,21 @@ class CommandsManager(commands.Cog):
         username = user.name
         user_id = user.id
 
+        if time_filter != "":
+            time_filter = time_filter.value
+
         if user_id in self.blocked_users:
             await interaction.followup.send(f"{username} is banned from Activity Bot. If you feel this is a mistake, please DM @captaindeathead for assistance.")
+            return
+
+        if presence and time_filter != "":
+            await interaction.followup.send("A `presence` and a `time_filter` cannot both be applied at the same time. Please choose one or the other.")
             return
 
         if isinstance(presence, str):
             graph_file: str = self.graph_manager.get_user_rich_time_specific(user_id, username, presence)
         else:
-            graph_file: str = self.graph_manager.get_user_rich_time(user_id, username)
+            graph_file: str = self.graph_manager.get_user_rich_time(user_id, username, time_filter)
 
         if graph_file == "":
             await interaction.followup.send(f"{username} is not found in the database. Please DM @captaindeathead for assistance.")
