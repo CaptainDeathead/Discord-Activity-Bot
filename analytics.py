@@ -282,10 +282,15 @@ class GraphManager:
                 else:
                     server_activities[activity] = sum(activities[activity].values())
                     colors.append(self._random_color())
+
+        display_time_filter = time_filter
+
+        if display_time_filter == "":
+            display_time_filter = "all time"
         
         plot.pie(server_activities.values(), labels=self.remove_minority_keys(server_activities),
                  colors=colors, autopct=lambda percent: self.format_time(percent, server_activities.values()))
-        plot.title(f"{server_name}'s rich status breakdown")
+        plot.title(f"{server_name}'s rich status breakdown ({display_time_filter})")
         plot.savefig(file_name, facecolor='none')
         plot.close()
 
