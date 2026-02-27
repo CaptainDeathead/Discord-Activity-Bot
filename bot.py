@@ -382,6 +382,12 @@ class CommandsManager(commands.Cog):
         remove(table)
 
     @app_commands.command(name="server_rich_status", description="Graph / table of time a server spends on each rich presence.")
+    @app_commands.describe(table="Show the data as a table rather than a graph (optional)", time_filter="Use data from only the last: day / week / month (optional)")
+    @app_commands.choices(time_filter=[
+        app_commands.Choice(name="Day", value="day"),
+        app_commands.Choice(name="Week", value="week"),
+        app_commands.Choice(name="Month", value="month"),
+    ])
     async def rich_server_graph(self, interaction: Interaction, table: bool = False, time_filter: app_commands.Choice[str] = ""):
         await interaction.response.defer()
 
