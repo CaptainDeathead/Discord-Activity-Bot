@@ -382,7 +382,7 @@ class CommandsManager(commands.Cog):
         remove(table)
 
     @app_commands.command(name="server_rich_status", description="Graph / table of time a server spends on each rich presence.")
-    async def rich_server_graph(self, interaction: Interaction, table: bool = False):
+    async def rich_server_graph(self, interaction: Interaction, table: bool = False, time_filter: app_commands.Choice[str] = ""):
         await interaction.response.defer()
 
         logging.info(f"Recieved 'server_rich_status' command...")
@@ -400,11 +400,18 @@ class CommandsManager(commands.Cog):
         
         if member_list == []:
             return await interaction.followup.send("Guild info not found!")
+
+        if time_filter != "":
+            time_filter = time_filter.value
         
         if table:
+            if time_filter != "":
+                await interaction.followup.send("A `table` and a `time_filter` cannot both be applied at the same time. Please choose one or the other.")
+                return
+
             return_filename = self.graph_manager.get_server_rich_time_table(member_list, server_name)
         else:
-            return_filename = self.graph_manager.get_server_rich_time(member_list, server_name)
+            return_filename = self.graph_manager.get_server_rich_time(member_list, server_name, time_filter)
 
         if return_filename == "":
             return await interaction.followup.send("Unknown error - Graph file not found!\nThis is likely because an error occured during the graphs creation.")

@@ -261,7 +261,7 @@ class GraphManager:
 
         return file_name
     
-    def get_server_rich_time(self, members: list, server_name: str) -> str:
+    def get_server_rich_time(self, members: list, server_name: str, time_filter: str) -> str:
         server_activities: Dict[str, int] = {}
         colors: List[Tuple[int, int, int]] = []
         file_name: str = f'{server_name.replace(" ", "_")}_server_rich.png'
@@ -272,6 +272,9 @@ class GraphManager:
             if user_data is None: return ""
 
             activities: Dict[str, Dict] = user_data[str(user_id)]["rich_presence_time"]
+
+            if time_filter != "":
+                activities = self.filter_rich_time_selector(user_id, user_data, time_filter)
 
             for activity in activities:
                 if activity in server_activities:
